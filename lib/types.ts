@@ -14,6 +14,7 @@ export interface Restaurant {
   email: string | null;
   instagram: string | null;
   facebook: string | null;
+  tiktok: string | null;
   address: string | null;
   mode: RestaurantMode;
   active: boolean;

@@ -32,6 +32,7 @@ export default async function OrderStatusPage({
       initialOrder={order}
       restaurant={restaurant}
       orderId={order_id}
+      slug={slug}
     />
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Plus, Download, Trash2, ToggleLeft, ToggleRight, QrCode } from "lucide-react";
+import { Plus, Download, Trash2, QrCode } from "lucide-react";
+import { Switch, Button } from "@heroui/react";
 import QRCode from "qrcode";
 import { saveAs } from "file-saver";
 import { createTables, deleteTable, toggleTableActive } from "@/lib/actions/tables";
@@ -70,12 +71,14 @@ export default function TablesManager({
               Modo food court — un solo QR para todos los clientes
             </p>
             <p className="mt-2 break-all text-xs text-neutral-400">{foodcourtUrl}</p>
-            <button
-              onClick={() => downloadQR(foodcourtUrl, `qr-${restaurantSlug}`)}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-700"
+            <Button
+              variant="primary"
+              fullWidth
+              className="mt-4"
+              onPress={() => downloadQR(foodcourtUrl, `qr-${restaurantSlug}`)}
             >
               <Download size={14} /> Descargar QR
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -94,22 +97,15 @@ export default function TablesManager({
             onChange={(e) => setCount(parseInt(e.target.value) || 1)}
             className="w-20 rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
           />
-          <button
-            onClick={handleAddTables}
-            disabled={isPending}
-            className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-          >
+          <Button variant="primary" onPress={handleAddTables} isDisabled={isPending}>
             <Plus size={14} />
             {count === 1 ? "Agregar mesa" : `Agregar ${count} mesas`}
-          </button>
+          </Button>
         </div>
         {initial.length > 0 && (
-          <button
-            onClick={downloadAllQRs}
-            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
-          >
+          <Button variant="outline" onPress={downloadAllQRs}>
             <Download size={14} /> Descargar todos los QRs
-          </button>
+          </Button>
         )}
       </div>
 
@@ -186,27 +182,20 @@ function QRCard({
       )}
       <p className="mt-2 text-sm font-semibold">{table.label}</p>
       <div className="mt-2 flex items-center justify-center gap-1">
-        <button
-          onClick={onToggle}
-          className={`rounded p-1 ${table.active ? "text-green-500" : "text-neutral-300"}`}
-          title={table.active ? "Activa" : "Inactiva"}
+        <Switch
+          isSelected={table.active}
+          onChange={() => onToggle()}
+          size="sm"
+          aria-label={table.active ? "Mesa activa" : "Mesa inactiva"}
         >
-          {table.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-        </button>
-        <button
-          onClick={onDownload}
-          className="rounded p-1 text-neutral-400 hover:text-neutral-700"
-          title="Descargar QR"
-        >
+          <Switch.Control><Switch.Thumb /></Switch.Control>
+        </Switch>
+        <Button variant="ghost" size="sm" isIconOnly onPress={onDownload} aria-label="Descargar QR">
           <Download size={16} />
-        </button>
-        <button
-          onClick={onDelete}
-          className="rounded p-1 text-neutral-300 hover:text-red-500"
-          title="Eliminar"
-        >
+        </Button>
+        <Button variant="danger-soft" size="sm" isIconOnly onPress={onDelete} aria-label="Eliminar">
           <Trash2 size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );

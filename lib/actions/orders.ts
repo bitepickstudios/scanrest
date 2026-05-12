@@ -1,22 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types";
+import { getCurrentRestaurant } from "@/lib/current-restaurant";
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const { supabase, restaurant } = await getCurrentRestaurant("id, slug");
 
   const { error } = await supabase
     .from("orders")
     .update({ status })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurant.id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/orders");
+  revalidatePath(`/admin/${restaurant.slug}/orders`);
 }

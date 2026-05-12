@@ -1,6 +1,7 @@
 "use client";
 
 import { X, Phone, User, FileText } from "lucide-react";
+import { Button } from "@heroui/react";
 import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
 
 type OrderFull = Order & {
@@ -34,9 +35,8 @@ export default function OrderDetailModal({
   }, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        {/* Header */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-[modal-backdrop_0.18s_ease-out]">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl animate-[modal-in_0.18s_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div>
             <h3 className="text-base font-bold">Pedido #{order.order_number}</h3>
@@ -50,7 +50,6 @@ export default function OrderDetailModal({
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-4">
-          {/* Customer info */}
           <div className="rounded-xl bg-neutral-50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <User size={14} className="text-neutral-400" />
@@ -73,49 +72,32 @@ export default function OrderDetailModal({
             )}
           </div>
 
-          {/* Notes */}
           {order.notes && (
             <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <span className="font-medium">Nota:</span> {order.notes}
             </div>
           )}
 
-          {/* Items */}
           <div>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Items
-            </h4>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">Items</h4>
             <div className="space-y-2">
               {order.order_items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start justify-between gap-2 rounded-xl border border-neutral-100 p-3"
-                >
+                <div key={item.id} className="flex items-start justify-between gap-2 rounded-xl border border-neutral-100 p-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold">
-                      {item.quantity}× {item.product_name}
-                    </p>
+                    <p className="text-sm font-semibold">{item.quantity}× {item.product_name}</p>
                     {(item.order_item_modifiers ?? []).length > 0 && (
                       <p className="mt-0.5 text-xs text-neutral-400">
-                        {(item.order_item_modifiers ?? [])
-                          .map((m) => m.modifier_name)
-                          .join(", ")}
+                        {(item.order_item_modifiers ?? []).map((m) => m.modifier_name).join(", ")}
                       </p>
                     )}
                     {item.notes && (
-                      <p className="mt-0.5 text-xs italic text-neutral-400">
-                        "{item.notes}"
-                      </p>
+                      <p className="mt-0.5 text-xs italic text-neutral-400">"{item.notes}"</p>
                     )}
                   </div>
                   <p className="shrink-0 text-sm font-medium">
                     Gs.{" "}
                     {(
-                      (item.unit_price +
-                        (item.order_item_modifiers ?? []).reduce(
-                          (s, m) => s + m.price_delta,
-                          0
-                        )) *
+                      (item.unit_price + (item.order_item_modifiers ?? []).reduce((s, m) => s + m.price_delta, 0)) *
                       item.quantity
                     ).toLocaleString("es-PY")}
                   </p>
@@ -128,27 +110,19 @@ export default function OrderDetailModal({
             </div>
           </div>
 
-          {/* Status change */}
           <div>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Cambiar estado
-            </h4>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">Cambiar estado</h4>
             <div className="grid grid-cols-2 gap-2">
               {STATUS_OPTIONS.map(({ value, label }) => (
-                <button
+                <Button
                   key={value}
-                  onClick={() => {
-                    onStatusChange(value);
-                    onClose();
-                  }}
-                  className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-                    order.status === value
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"
-                  }`}
+                  variant={order.status === value ? "primary" : "outline"}
+                  size="sm"
+                  fullWidth
+                  onPress={() => { onStatusChange(value); onClose(); }}
                 >
                   {label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

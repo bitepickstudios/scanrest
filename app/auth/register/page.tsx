@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
@@ -67,16 +68,23 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(`/admin/${slug}`);
     router.refresh();
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">ScanRest</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image
+            src="/scanrest.svg"
+            alt="ScanRest"
+            width={2051}
+            height={437}
+            priority
+            className="h-8 w-auto"
+          />
+          <p className="mt-3 text-sm text-neutral-500">
             Creá tu cuenta y empezá a recibir pedidos
           </p>
         </div>

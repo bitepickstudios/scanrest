@@ -1,21 +1,13 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import ProfileForm from "@/components/admin/ProfileForm";
+import { getRestaurantBySlug } from "@/lib/current-restaurant";
 
-export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
-
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("*")
-    .eq("owner_id", user.id)
-    .single();
-
-  if (!restaurant) redirect("/auth/register");
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ restaurantSlug: string }>;
+}) {
+  const { restaurantSlug } = await params;
+  const { restaurant } = await getRestaurantBySlug(restaurantSlug, "*");
 
   return (
     <div className="p-8">

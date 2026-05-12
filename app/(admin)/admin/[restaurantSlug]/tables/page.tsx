@@ -1,21 +1,16 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import TablesManager from "@/components/admin/TablesManager";
+import { getRestaurantBySlug } from "@/lib/current-restaurant";
 
-export default async function TablesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
-
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("id, slug, mode")
-    .eq("owner_id", user.id)
-    .single();
-
-  if (!restaurant) redirect("/auth/register");
+export default async function TablesPage({
+  params,
+}: {
+  params: Promise<{ restaurantSlug: string }>;
+}) {
+  const { restaurantSlug } = await params;
+  const { supabase, restaurant } = await getRestaurantBySlug(
+    restaurantSlug,
+    "id, slug, mode"
+  );
 
   const { data: tables } = await supabase
     .from("tables")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { RefreshCw } from "lucide-react";
+import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "@/lib/actions/orders";
 import KanbanColumn from "./KanbanColumn";
@@ -56,22 +57,17 @@ export default function KanbanBoard({
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
-
     const orderId = active.id as string;
     const newStatus = over.id as OrderStatus;
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.status === newStatus) return;
-
-    // Optimistic update
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
     );
-
     startTransition(async () => {
       try {
         await updateOrderStatus(orderId, newStatus);
       } catch {
-        // Revert on error
         setOrders((prev) =>
           prev.map((o) => (o.id === orderId ? { ...o, status: order.status } : o))
         );
@@ -79,31 +75,17 @@ export default function KanbanBoard({
     });
   }
 
-  function handleRefresh() {
-    router.refresh();
-  }
-
   return (
     <>
       <div className="flex h-full flex-col">
-        {/* Toolbar */}
         <div className="flex items-center justify-end border-b border-neutral-100 bg-white px-6 py-2">
-          <button
-            onClick={handleRefresh}
-            disabled={isPending}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 disabled:opacity-50"
-          >
+          <Button variant="ghost" size="sm" onPress={() => router.refresh()} isDisabled={isPending}>
             <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
             Actualizar
-          </button>
+          </Button>
         </div>
 
-        {/* Columns */}
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex flex-1 gap-4 overflow-x-auto p-6">
             {COLUMNS.map((col) => (
               <KanbanColumn
@@ -120,12 +102,7 @@ export default function KanbanBoard({
 
           <DragOverlay>
             {activeOrder && (
-              <OrderCard
-                order={activeOrder}
-                mode={mode}
-                onSelect={() => {}}
-                isDragging
-              />
+              <OrderCard order={activeOrder} mode={mode} onSelect={() => {}} isDragging />
             )}
           </DragOverlay>
         </DndContext>
@@ -138,13 +115,9 @@ export default function KanbanBoard({
           onClose={() => setSelectedOrder(null)}
           onStatusChange={(status) => {
             setOrders((prev) =>
-              prev.map((o) =>
-                o.id === selectedOrder.id ? { ...o, status } : o
-              )
+              prev.map((o) => (o.id === selectedOrder.id ? { ...o, status } : o))
             );
-            setSelectedOrder((prev) =>
-              prev ? { ...prev, status } : null
-            );
+            setSelectedOrder((prev) => prev ? { ...prev, status } : null);
             startTransition(async () => {
               await updateOrderStatus(selectedOrder.id, status);
             });

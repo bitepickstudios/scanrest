@@ -1,5 +1,12 @@
-import { MapPin, Phone, Mail, Star, ExternalLink } from "lucide-react";
+import { MapPin, Mail, Star } from "lucide-react";
+import { Avatar, Chip } from "@heroui/react";
 import type { Restaurant } from "@/lib/types";
+import {
+  WhatsappIcon,
+  InstagramIcon,
+  FacebookIcon,
+  TiktokIcon,
+} from "@/components/icons/SocialIcons";
 
 export default function StorefrontHeader({
   restaurant,
@@ -10,41 +17,46 @@ export default function StorefrontHeader({
   avgRating: number | null;
   reviewCount: number;
 }) {
+  const initials = restaurant.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="bg-white">
       {/* Cover */}
-      <div className="relative h-44 w-full bg-neutral-200">
+      <div className="relative h-44 w-full bg-gradient-to-br from-neutral-200 to-neutral-300">
         {restaurant.cover_url && (
           <img
             src={restaurant.cover_url}
-            alt="cover"
+            alt={`${restaurant.name} cover`}
             className="h-full w-full object-cover"
           />
         )}
-        {/* Mode badge */}
-        <span className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
-          {restaurant.mode === "table" ? "🍽 Pedido a mesa" : "🏃 Retiro en mostrador"}
-        </span>
+        <div className="absolute right-3 top-3">
+          <Chip variant="primary" size="sm" className="bg-black/60 text-white backdrop-blur-sm">
+            {restaurant.mode === "table" ? "🍽 Pedido a mesa" : "🏃 Retiro en mostrador"}
+          </Chip>
+        </div>
       </div>
 
-      {/* Logo + info */}
       <div className="px-4 pb-4">
-        {/* Logo */}
         <div className="-mt-8 mb-3 flex items-end gap-3">
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-white bg-neutral-100 shadow-md">
-            {restaurant.logo_url ? (
-              <img
+          <Avatar size="lg" className="h-16 w-16 shrink-0 rounded-2xl ring-2 ring-white shadow-md">
+            {restaurant.logo_url && (
+              <Avatar.Image
                 src={restaurant.logo_url}
                 alt={restaurant.name}
-                className="h-full w-full object-cover"
+                className="rounded-2xl object-cover"
               />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-neutral-300">
-                {restaurant.name[0]}
-              </div>
             )}
-          </div>
-          {/* Stars */}
+            <Avatar.Fallback className="rounded-2xl bg-neutral-100 text-2xl font-bold text-neutral-400">
+              {initials}
+            </Avatar.Fallback>
+          </Avatar>
+
           {avgRating !== null && (
             <div className="mb-1 flex items-center gap-1">
               <Star size={14} className="fill-amber-400 text-amber-400" />
@@ -62,16 +74,16 @@ export default function StorefrontHeader({
           </p>
         )}
 
-        {/* Social links */}
         <div className="mt-3 flex flex-wrap gap-2">
           {restaurant.whatsapp && (
             <a
               href={`https://wa.me/${restaurant.whatsapp.replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700"
             >
-              <Phone size={12} /> WhatsApp
+              <Chip variant="soft" size="sm" className="bg-green-50 text-green-600">
+                <WhatsappIcon size={12} /> WhatsApp
+              </Chip>
             </a>
           )}
           {restaurant.instagram && (
@@ -79,33 +91,45 @@ export default function StorefrontHeader({
               href={`https://instagram.com/${restaurant.instagram.replace("@", "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-700"
             >
-              <ExternalLink size={12} /> Instagram
+              <Chip variant="soft" size="sm" className="bg-pink-50 text-pink-600">
+                <InstagramIcon size={12} /> Instagram
+              </Chip>
             </a>
           )}
           {restaurant.facebook && (
             <a
-              href={`https://facebook.com/${restaurant.facebook}`}
+              href={`https://facebook.com/${restaurant.facebook.replace(/^facebook\.com\//, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700"
             >
-              <ExternalLink size={12} /> Facebook
+              <Chip variant="soft" size="sm" className="bg-blue-50 text-blue-600">
+                <FacebookIcon size={12} /> Facebook
+              </Chip>
+            </a>
+          )}
+          {restaurant.tiktok && (
+            <a
+              href={`https://tiktok.com/@${restaurant.tiktok.replace("@", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Chip variant="soft" size="sm" className="bg-neutral-900 text-white">
+                <TiktokIcon size={12} /> TikTok
+              </Chip>
             </a>
           )}
           {restaurant.email && (
-            <a
-              href={`mailto:${restaurant.email}`}
-              className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-600"
-            >
-              <Mail size={12} /> Email
+            <a href={`mailto:${restaurant.email}`}>
+              <Chip variant="soft" size="sm" className="bg-neutral-100 text-neutral-600">
+                <Mail size={12} /> Email
+              </Chip>
             </a>
           )}
           {restaurant.address && (
-            <span className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 text-xs text-neutral-500">
+            <Chip variant="soft" size="sm" className="bg-neutral-100 text-neutral-500">
               <MapPin size={12} /> {restaurant.address}
-            </span>
+            </Chip>
           )}
         </div>
       </div>

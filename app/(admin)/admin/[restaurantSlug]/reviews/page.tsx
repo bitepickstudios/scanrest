@@ -1,21 +1,16 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Star } from "lucide-react";
+import { getRestaurantBySlug } from "@/lib/current-restaurant";
 
-export default async function ReviewsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
-
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("id")
-    .eq("owner_id", user.id)
-    .single();
-
-  if (!restaurant) redirect("/auth/register");
+export default async function ReviewsPage({
+  params,
+}: {
+  params: Promise<{ restaurantSlug: string }>;
+}) {
+  const { restaurantSlug } = await params;
+  const { supabase, restaurant } = await getRestaurantBySlug(
+    restaurantSlug,
+    "id"
+  );
 
   const { data: reviews } = await supabase
     .from("reviews")
@@ -38,7 +33,6 @@ export default async function ReviewsPage() {
     <div className="p-8">
       <h1 className="text-xl font-semibold text-neutral-800">Reseñas</h1>
 
-      {/* Summary */}
       {list.length > 0 && (
         <div className="mt-6 flex items-center gap-8 rounded-xl border border-neutral-200 bg-white p-5">
           <div className="text-center">
@@ -86,7 +80,6 @@ export default async function ReviewsPage() {
         </div>
       )}
 
-      {/* Reviews list */}
       <div className="mt-6 space-y-3">
         {list.length === 0 ? (
           <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-neutral-200">

@@ -1,24 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentRestaurant } from "@/lib/current-restaurant";
 
 async function getRestaurant() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
-
-  const { data } = await supabase
-    .from("restaurants")
-    .select("id, slug, mode")
-    .eq("owner_id", user.id)
-    .single();
-
-  if (!data) throw new Error("Restaurant not found");
-  return { supabase, restaurant: data };
+  const { supabase, restaurant } = await getCurrentRestaurant(
+    "id, slug, mode"
+  );
+  return { supabase, restaurant: restaurant as { id: string; slug: string; mode: string } };
 }
 
 export async function createTables(count: number) {
@@ -41,7 +30,7 @@ export async function createTables(count: number) {
 
   const { error } = await supabase.from("tables").insert(rows);
   if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/tables");
+  revalidatePath(`/admin/${restaurant.slug}/tables`);
 }
 
 export async function deleteTable(id: string) {
@@ -52,7 +41,7 @@ export async function deleteTable(id: string) {
     .eq("id", id)
     .eq("restaurant_id", restaurant.id);
   if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/tables");
+  revalidatePath(`/admin/${restaurant.slug}/tables`);
 }
 
 export async function toggleTableActive(id: string, active: boolean) {
@@ -63,5 +52,5 @@ export async function toggleTableActive(id: string, active: boolean) {
     .eq("id", id)
     .eq("restaurant_id", restaurant.id);
   if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/tables");
+  revalidatePath(`/admin/${restaurant.slug}/tables`);
 }

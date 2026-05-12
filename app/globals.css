@@ -1,6 +1,136 @@
 @import "@heroui/styles";
 
+/* geist-latin-wght-normal */
+@font-face {
+  font-family: 'Geist Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/geist:vf@latest/latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  --accent: oklch(82.00% 0.1200 155.00);
+  --accent-foreground: oklch(15% 0.0240 155.00);
+  --background: oklch(97.02% 0.0015 155.00);
+  --border: oklch(90.00% 0.0015 155.00);
+  --danger: oklch(65.32% 0.2335 13.88);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(94.00% 0.0015 155.00);
+  --default-foreground: oklch(21.03% 0.0059 155.00);
+  --field-background: oklch(100.00% 0.0008 155.00);
+  --field-foreground: oklch(21.03% 0.0015 155.00);
+  --field-placeholder: oklch(55.17% 0.0030 155.00);
+  --focus: oklch(82.00% 0.1200 155.00);
+  --foreground: oklch(21.03% 0.0015 155.00);
+  --muted: oklch(55.17% 0.0030 155.00);
+  --overlay: oklch(100.00% 0.0004 155.00);
+  --overlay-foreground: oklch(21.03% 0.0015 155.00);
+  --scrollbar: oklch(87.10% 0.0015 155.00);
+  --segment: oklch(100.00% 0.0015 155.00);
+  --segment-foreground: oklch(21.03% 0.0015 155.00);
+  --separator: oklch(92.00% 0.0015 155.00);
+  --success: oklch(73.29% 0.1941 138.95);
+  --success-foreground: oklch(21.03% 0.0059 138.95);
+  --surface: oklch(100.00% 0.0008 155.00);
+  --surface-foreground: oklch(21.03% 0.0015 155.00);
+  --surface-secondary: oklch(95.24% 0.0012 155.00);
+  --surface-secondary-foreground: oklch(21.03% 0.0015 155.00);
+  --surface-tertiary: oklch(93.73% 0.0012 155.00);
+  --surface-tertiary-foreground: oklch(21.03% 0.0015 155.00);
+  --warning: oklch(78.19% 0.1590 60.47);
+  --warning-foreground: oklch(21.03% 0.0059 60.47);
+  --radius: 0.5rem;
+  --field-radius: 0.75rem;
+  --font-sans: 'Geist Variable', var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --accent: oklch(82.00% 0.1200 155.00);
+  --accent-foreground: oklch(15% 0.0240 155.00);
+  --background: oklch(12.00% 0.0015 155.00);
+  --border: oklch(28.00% 0.0015 155.00);
+  --danger: oklch(59.40% 0.1973 12.77);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(27.40% 0.0015 155.00);
+  --default-foreground: oklch(99.11% 0 0);
+  --field-background: oklch(21.03% 0.0030 155.00);
+  --field-foreground: oklch(99.11% 0.0015 155.00);
+  --field-placeholder: oklch(70.50% 0.0030 155.00);
+  --focus: oklch(82.00% 0.1200 155.00);
+  --foreground: oklch(99.11% 0.0015 155.00);
+  --muted: oklch(70.50% 0.0030 155.00);
+  --overlay: oklch(21.03% 0.0030 155.00);
+  --overlay-foreground: oklch(99.11% 0.0015 155.00);
+  --scrollbar: oklch(70.50% 0.0015 155.00);
+  --segment: oklch(39.64% 0.0015 155.00);
+  --segment-foreground: oklch(99.11% 0.0015 155.00);
+  --separator: oklch(25.00% 0.0015 155.00);
+  --success: oklch(73.29% 0.1941 138.95);
+  --success-foreground: oklch(21.03% 0.0059 138.95);
+  --surface: oklch(21.03% 0.0030 155.00);
+  --surface-foreground: oklch(99.11% 0.0015 155.00);
+  --surface-secondary: oklch(25.70% 0.0023 155.00);
+  --surface-secondary-foreground: oklch(99.11% 0.0015 155.00);
+  --surface-tertiary: oklch(27.21% 0.0023 155.00);
+  --surface-tertiary-foreground: oklch(99.11% 0.0015 155.00);
+  --warning: oklch(82.03% 0.1392 64.48);
+  --warning-foreground: oklch(21.03% 0.0059 64.48);
+}
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Geist Variable', var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  --animate-modal-in: modal-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-modal-backdrop: modal-backdrop 0.18s ease-out;
+  --animate-slide-up: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 0.15s ease-out;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

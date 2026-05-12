@@ -240,6 +240,18 @@ export default function ProfileForm({
             className={inputClass}
           />
         </div>
+        <div>
+          <label className={labelClass} htmlFor="tiktok">
+            TikTok
+          </label>
+          <input
+            id="tiktok"
+            name="tiktok"
+            defaultValue={restaurant.tiktok ?? ""}
+            placeholder="@usuario"
+            className={inputClass}
+          />
+        </div>
       </div>
 
       <div>

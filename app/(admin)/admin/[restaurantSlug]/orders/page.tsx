@@ -1,21 +1,16 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import KanbanBoard from "@/components/admin/KanbanBoard";
+import { getRestaurantBySlug } from "@/lib/current-restaurant";
 
-export default async function OrdersPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
-
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("id, mode")
-    .eq("owner_id", user.id)
-    .single();
-
-  if (!restaurant) redirect("/auth/register");
+export default async function OrdersPage({
+  params,
+}: {
+  params: Promise<{ restaurantSlug: string }>;
+}) {
+  const { restaurantSlug } = await params;
+  const { supabase, restaurant } = await getRestaurantBySlug(
+    restaurantSlug,
+    "id, mode"
+  );
 
   const { data: orders } = await supabase
     .from("orders")

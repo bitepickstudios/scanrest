@@ -1,15 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentRestaurant } from "@/lib/current-restaurant";
 
 export async function updateRestaurantProfile(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const { supabase, restaurant } = await getCurrentRestaurant("id, slug");
 
   const fields = {
     name: formData.get("name") as string,
@@ -20,35 +15,35 @@ export async function updateRestaurantProfile(formData: FormData) {
     email: formData.get("email") as string,
     instagram: formData.get("instagram") as string,
     facebook: formData.get("facebook") as string,
+    tiktok: formData.get("tiktok") as string,
     address: formData.get("address") as string,
     mode: formData.get("mode") as string,
+    logo_url: (formData.get("logo_url") as string) || null,
+    cover_url: (formData.get("cover_url") as string) || null,
   };
 
   const { error } = await supabase
     .from("restaurants")
     .update(fields)
-    .eq("owner_id", user.id);
+    .eq("id", restaurant.id);
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/dashboard/profile");
+  revalidatePath(`/admin/${fields.slug}/profile`);
+  revalidatePath(`/admin/${restaurant.slug}/profile`);
 }
 
 export async function updateRestaurantImage(
   field: "logo_url" | "cover_url",
   url: string
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const { supabase, restaurant } = await getCurrentRestaurant("id, slug");
 
   const { error } = await supabase
     .from("restaurants")
     .update({ [field]: url })
-    .eq("owner_id", user.id);
+    .eq("id", restaurant.id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/profile");
+  revalidatePath(`/admin/${restaurant.slug}/profile`);
 }

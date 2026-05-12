@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
+import { Button } from "@heroui/react";
 import { createProduct, updateProduct } from "@/lib/actions/menu";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Product } from "@/lib/types";
@@ -56,7 +57,6 @@ export default function ProductModal({
       price: parseFloat(fd.get("price") as string),
       image_url: imageUrl || null,
     };
-
     startTransition(async () => {
       try {
         if (product) {
@@ -76,8 +76,8 @@ export default function ProductModal({
   const labelClass = "mb-1 block text-xs font-medium text-neutral-600";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-[modal-backdrop_0.18s_ease-out]">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl animate-[modal-in_0.18s_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <h3 className="text-base font-semibold">
             {product ? "Editar producto" : "Nuevo producto"}
@@ -90,71 +90,34 @@ export default function ProductModal({
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
             <label className={labelClass}>Categoría</label>
-            <select
-              name="category_id"
-              defaultValue={product?.category_id ?? categoryId}
-              className={inputClass}
-            >
+            <select name="category_id" defaultValue={product?.category_id ?? categoryId} className={inputClass}>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
 
           <div>
             <label className={labelClass} htmlFor="p-name">Nombre *</label>
-            <input
-              id="p-name"
-              name="name"
-              required
-              defaultValue={product?.name}
-              className={inputClass}
-            />
+            <input id="p-name" name="name" required defaultValue={product?.name} className={inputClass} />
           </div>
 
           <div>
             <label className={labelClass} htmlFor="p-desc">Descripción</label>
-            <textarea
-              id="p-desc"
-              name="description"
-              rows={2}
-              defaultValue={product?.description ?? ""}
-              className={inputClass}
-            />
+            <textarea id="p-desc" name="description" rows={2} defaultValue={product?.description ?? ""} className={inputClass} />
           </div>
 
           <div>
             <label className={labelClass} htmlFor="p-price">Precio (Gs.) *</label>
-            <input
-              id="p-price"
-              name="price"
-              type="number"
-              required
-              min={0}
-              step={500}
-              defaultValue={product?.price}
-              className={inputClass}
-            />
+            <input id="p-price" name="price" type="number" required min={0} step={500} defaultValue={product?.price} className={inputClass} />
           </div>
 
           <div>
             <label className={labelClass}>Imagen</label>
             {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="preview"
-                className="mb-2 h-24 w-full rounded-lg object-cover"
-              />
+              <img src={imageUrl} alt="preview" className="mb-2 h-24 w-full rounded-lg object-cover" />
             )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              disabled={uploading}
-              className="text-sm text-neutral-500"
-            />
+            <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="text-sm text-neutral-500" />
             {uploading && <p className="mt-1 text-xs text-neutral-400">Subiendo...</p>}
           </div>
 
@@ -163,20 +126,10 @@ export default function ProductModal({
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || uploading}
-              className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-            >
+            <Button variant="outline" onPress={onClose}>Cancelar</Button>
+            <Button variant="primary" type="submit" isDisabled={isPending || uploading}>
               {isPending ? "Guardando..." : "Guardar"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

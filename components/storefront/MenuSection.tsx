@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Card, Tabs } from "@heroui/react";
 import type { Category, Product, ModifierGroup, Modifier } from "@/lib/types";
 import ProductModal from "./ProductModal";
 
@@ -45,26 +46,27 @@ export default function MenuSection({
 
   return (
     <>
-      {/* Sticky category tabs */}
       <div className="sticky top-0 z-10 bg-white shadow-sm">
-        <div className="flex gap-0 overflow-x-auto scrollbar-hide px-4 py-3">
-          {visibleCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => scrollToCategory(cat.id)}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors mr-2 ${
-                activeCategory === cat.id
-                  ? "bg-neutral-900 text-white"
-                  : "bg-neutral-100 text-neutral-600"
-              }`}
+        <Tabs
+          selectedKey={activeCategory}
+          onSelectionChange={(key) => scrollToCategory(String(key))}
+        >
+          <Tabs.ListContainer className="px-4 py-2">
+            <Tabs.List
+              aria-label="Categorías"
+              className="w-fit overflow-x-auto scrollbar-hide *:w-fit *:shrink-0 *:px-3"
             >
-              {cat.name}
-            </button>
-          ))}
-        </div>
+              {visibleCategories.map((cat) => (
+                <Tabs.Tab key={cat.id} id={cat.id}>
+                  {cat.name}
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs.ListContainer>
+        </Tabs>
       </div>
 
-      {/* Product sections */}
       <div className="px-4 pt-4 space-y-8">
         {visibleCategories.map((cat) => (
           <div
@@ -79,26 +81,32 @@ export default function MenuSection({
                   <button
                     key={product.id}
                     onClick={() => setSelectedProduct(product)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm active:scale-[0.98] transition-transform"
+                    className="block w-full text-left active:scale-[0.98] transition-transform"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-neutral-900">{product.name}</p>
-                      {product.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
-                          {product.description}
-                        </p>
-                      )}
-                      <p className="mt-1.5 text-sm font-bold text-neutral-800">
-                        Gs. {product.price.toLocaleString("es-PY")}
-                      </p>
-                    </div>
-                    {product.image_url && (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="h-20 w-20 shrink-0 rounded-xl object-cover"
-                      />
-                    )}
+                    <Card variant="default" className="rounded-2xl shadow-sm overflow-hidden">
+                      <Card.Content className="!flex !flex-row items-center gap-3">
+                        <div className="flex-1 min-w-0 pl-1">
+                          <p className="font-semibold text-neutral-900">{product.name}</p>
+                          {product.description && (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
+                              {product.description}
+                            </p>
+                          )}
+                          <p className="mt-1 text-sm font-bold text-neutral-800">
+                            Gs. {product.price.toLocaleString("es-PY")}
+                          </p>
+                        </div>
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="h-20 w-20 shrink-0 rounded-xl bg-neutral-100" />
+                        )}
+                      </Card.Content>
+                    </Card>
                   </button>
                 ))}
             </div>

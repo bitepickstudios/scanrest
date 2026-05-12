@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash2, ChevronRight, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight } from "lucide-react";
+import { Switch, Button } from "@heroui/react";
 import {
   createCategory,
   updateCategory,
@@ -187,14 +188,13 @@ export default function MenuManager({
               <h2 className="text-base font-semibold text-neutral-800">
                 {selectedCategory.name}
               </h2>
-              <button
-                onClick={() =>
-                  setProductModal({ product: null, categoryId: selectedCategory.id })
-                }
-                className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => setProductModal({ product: null, categoryId: selectedCategory.id })}
               >
                 <Plus size={14} /> Agregar producto
-              </button>
+              </Button>
             </div>
 
             {products.length === 0 ? (
@@ -232,36 +232,39 @@ export default function MenuManager({
                             Gs. {product.price.toLocaleString("es-PY")}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleToggleAvailability(product.id, product.available)}
-                          className={`shrink-0 ${product.available ? "text-green-500" : "text-neutral-300"}`}
-                          title={product.available ? "Disponible" : "No disponible"}
+                        <Switch
+                          isSelected={product.available}
+                          onChange={() => handleToggleAvailability(product.id, product.available)}
+                          size="sm"
+                          aria-label={product.available ? "Disponible" : "No disponible"}
                         >
-                          {product.available ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                        </button>
+                          <Switch.Control><Switch.Thumb /></Switch.Control>
+                        </Switch>
                       </div>
 
                       <div className="mt-2 flex items-center gap-1.5">
-                        <button
-                          onClick={() =>
-                            setProductModal({ product, categoryId: selectedCategory.id })
-                          }
-                          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setProductModal({ product, categoryId: selectedCategory.id })}
                         >
                           <Pencil size={11} /> Editar
-                        </button>
-                        <button
-                          onClick={() => setModifierModal(product)}
-                          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100"
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => setModifierModal(product)}
                         >
                           <ChevronRight size={11} /> Modificadores
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
+                        </Button>
+                        <Button
+                          variant="danger-soft"
+                          size="sm"
+                          isIconOnly
+                          onPress={() => handleDeleteProduct(product.id)}
                         >
                           <Trash2 size={11} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

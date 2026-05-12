@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Minus, Plus } from "lucide-react";
+import { Button, Chip, Checkbox, Label } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import type { Product, ModifierGroup, Modifier } from "@/lib/types";
 
@@ -62,8 +63,7 @@ export default function ProductModal({
   const total = (product.price + extraPrice) * quantity;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      {/* Header image */}
+    <div className="fixed inset-0 z-50 flex flex-col bg-white animate-[slide-up_0.22s_cubic-bezier(0.16,1,0.3,1)]">
       <div className="relative h-56 shrink-0 bg-neutral-100">
         {product.image_url && (
           <img
@@ -72,15 +72,16 @@ export default function ProductModal({
             className="h-full w-full object-cover"
           />
         )}
-        <button
-          onClick={onClose}
-          className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow"
+        <Button
+          isIconOnly
+          variant="secondary"
+          onPress={onClose}
+          className="absolute left-3 top-3 h-9 w-9 rounded-full bg-white/90 shadow"
         >
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
         <h2 className="text-xl font-bold">{product.name}</h2>
         {product.description && (
@@ -90,15 +91,14 @@ export default function ProductModal({
           Gs. {product.price.toLocaleString("es-PY")}
         </p>
 
-        {/* Modifier groups */}
         {product.modifier_groups.map((group) => (
           <div key={group.id} className="mt-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">{group.name}</h3>
               {group.required && (
-                <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                <Chip variant="soft" size="sm" className="bg-red-50 text-red-600">
                   Requerido
-                </span>
+                </Chip>
               )}
             </div>
             <p className="mb-2 text-xs text-neutral-400">
@@ -106,36 +106,45 @@ export default function ProductModal({
                 ? "Elegí una opción"
                 : `Elegí hasta ${group.max_selections}`}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {group.modifiers?.map((mod) => {
-                const isSelected = selected[group.id]?.includes(mod.id);
+                const isSelected = selected[group.id]?.includes(mod.id) ?? false;
+                const checkboxId = `mod-${group.id}-${mod.id}`;
                 return (
-                  <button
+                  <label
                     key={mod.id}
-                    onClick={() =>
-                      toggleModifier(group.id, mod.id, group.max_selections)
-                    }
-                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
-                      isSelected
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-white text-neutral-800"
-                    }`}
+                    htmlFor={checkboxId}
+                    className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm hover:bg-neutral-50"
                   >
-                    <span>{mod.name}</span>
+                    <Checkbox
+                      id={checkboxId}
+                      isSelected={isSelected}
+                      onChange={() =>
+                        toggleModifier(group.id, mod.id, group.max_selections)
+                      }
+                    >
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                      <Checkbox.Content>
+                        <Label htmlFor={checkboxId} className="text-neutral-800">
+                          {mod.name}
+                        </Label>
+                      </Checkbox.Content>
+                    </Checkbox>
                     {mod.price_delta !== 0 && (
-                      <span className={isSelected ? "text-neutral-300" : "text-neutral-500"}>
+                      <span className="text-neutral-500">
                         {mod.price_delta > 0 ? "+" : ""}Gs.{" "}
                         {mod.price_delta.toLocaleString("es-PY")}
                       </span>
                     )}
-                  </button>
+                  </label>
                 );
               })}
             </div>
           </div>
         ))}
 
-        {/* Note */}
         <div className="mt-5">
           <label className="mb-1 block text-sm font-medium text-neutral-700">
             Nota (opcional)
@@ -150,35 +159,37 @@ export default function ProductModal({
         </div>
       </div>
 
-      {/* Bottom bar */}
       <div className="border-t border-neutral-100 bg-white px-4 py-4">
         <div className="flex items-center gap-4">
-          {/* Qty */}
-          <div className="flex items-center gap-3 rounded-xl border border-neutral-200 px-3 py-2">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="text-neutral-600"
+          <div className="flex items-center gap-2 rounded-xl border border-neutral-200 px-2 py-1">
+            <Button
+              isIconOnly
+              variant="ghost"
+              size="sm"
+              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
             >
               <Minus size={16} />
-            </button>
+            </Button>
             <span className="w-5 text-center text-sm font-semibold">{quantity}</span>
-            <button
-              onClick={() => setQuantity((q) => q + 1)}
-              className="text-neutral-600"
+            <Button
+              isIconOnly
+              variant="ghost"
+              size="sm"
+              onPress={() => setQuantity((q) => q + 1)}
             >
               <Plus size={16} />
-            </button>
+            </Button>
           </div>
 
-          {/* Add button */}
-          <button
-            onClick={handleAdd}
-            disabled={!canAdd()}
-            className="flex flex-1 items-center justify-between rounded-2xl bg-neutral-900 px-5 py-3 font-medium text-white disabled:opacity-40"
+          <Button
+            variant="primary"
+            onPress={handleAdd}
+            isDisabled={!canAdd()}
+            className="flex-1 justify-between rounded-2xl px-5 py-3 h-auto"
           >
             <span>Agregar al pedido</span>
             <span>Gs. {total.toLocaleString("es-PY")}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

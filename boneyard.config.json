@@ -1,0 +1,8 @@
+{
+  "out": "./bones",
+  "animate": "shimmer",
+  "color": "#f0f0f0",
+  "darkColor": "#222222",
+  "shimmerColor": "#f9f9f9",
+  "wait": 1000
+}

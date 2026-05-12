@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { Button } from "@heroui/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ReviewForm({
@@ -45,14 +46,9 @@ export default function ReviewForm({
 
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-bold text-neutral-800">
-        ¿Cómo fue tu experiencia?
-      </h3>
-      <p className="mt-0.5 text-xs text-neutral-400">
-        Dejá una reseña del restaurante
-      </p>
+      <h3 className="text-sm font-bold text-neutral-800">¿Cómo fue tu experiencia?</h3>
+      <p className="mt-0.5 text-xs text-neutral-400">Dejá una reseña del restaurante</p>
 
-      {/* Stars */}
       <div className="mt-4 flex justify-center gap-2">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -83,13 +79,14 @@ export default function ReviewForm({
             placeholder="Contanos tu experiencia (opcional)..."
             className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
           />
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          <Button
+            variant="primary"
+            onPress={handleSubmit}
+            isDisabled={loading}
+            className="w-full"
           >
             {loading ? "Enviando..." : "Enviar reseña"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -14,36 +14,40 @@
 | QR | qrcode + file-saver |
 | Data fetching | SWR |
 | Icons | lucide-react |
+| Font | Geist Variable (fontsource CDN) |
 
 ---
 
 ## Routes
 
 ```
-/                              → Landing (marketing)
-/auth/login                    → Owner login
-/auth/register                 → Owner register
+/                                           → Landing (placeholder)
+/auth/login                                 → Owner login
+/auth/register                              → Owner register
+/auth/select-restaurant                     → Multi-restaurant picker
 
-/dashboard                     → Admin home (stats)
-/dashboard/profile             → Restaurant profile editor
-/dashboard/menu                → Products & categories CRUD
-/dashboard/tables              → Table/QR manager
-/dashboard/orders              → Kanban board
-/dashboard/reviews             → Reviews viewer
+/admin/[restaurantSlug]                     → Admin home (stats)
+/admin/[restaurantSlug]/profile             → Restaurant profile editor
+/admin/[restaurantSlug]/menu                → Products & categories CRUD
+/admin/[restaurantSlug]/tables              → Table/QR manager
+/admin/[restaurantSlug]/orders              → Kanban board
+/admin/[restaurantSlug]/reviews             → Reviews viewer
 
-/[slug]?table=[table_id]       → Storefront (mobile, QR entry)
-/[slug]/order/[order_id]       → Order status tracker
+/[slug]?table=[table_id]                    → Storefront (mobile, QR entry)
+/[slug]/order/[order_id]                    → Order tracker (horizontal stepper)
 ```
 
 ---
 
 ## Notes técnicas
 
-- Next.js 16 renombró `middleware.ts` → `proxy.ts` (función `proxy` en vez de `middleware`)
+- Next.js 16 renombró `middleware.ts` → `proxy.ts` (función `proxy`)
 - Next.js 16 `params` es Promise: `const { slug } = await params`
-- HeroUI v3 no necesita provider — solo importar `@heroui/styles` en globals.css
-- Supabase publishable key = anon key, usar `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Storage RLS: buckets públicos necesitan políticas explícitas en `storage.objects`
+- HeroUI v3 sin provider — solo `@import "@heroui/styles"` en globals.css
+- Supabase publishable key = anon key, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Storage RLS: buckets públicos necesitan políticas en `storage.objects`
+- Multi-tenant: URL drives slug; proxy syncs `current_restaurant_id` cookie para server actions
+- HeroUI v3 Tabs full-width default — fix con `w-fit *:w-fit *:px-3`
 
 ---
 
@@ -51,169 +55,174 @@
 
 ```sql
 restaurants (id, owner_id, name, slug, description, logo_url, cover_url,
-             phone, whatsapp, email, instagram, facebook, address,
+             phone, whatsapp, email, instagram, facebook, tiktok, address,
              mode [table|foodcourt], active, created_at)
 
 tables (id, restaurant_id, number, label, qr_url, active)
-
 categories (id, restaurant_id, name, sort_order)
-
 products (id, restaurant_id, category_id, name, description,
           price, image_url, available, sort_order)
-
 modifier_groups (id, product_id, name, required, max_selections)
-
 modifiers (id, group_id, name, price_delta)
-
 orders (id, restaurant_id, table_id, order_number, customer_name,
         customer_phone, customer_ci, mode, status [new|preparing|ready|delivered],
         notes, created_at, updated_at)
-
 order_items (id, order_id, product_id, product_name, quantity, unit_price, notes)
-
 order_item_modifiers (id, order_item_id, modifier_name, price_delta)
-
 reviews (id, restaurant_id, customer_name, rating, comment, created_at)
 ```
 
 ---
 
-## Phase 0 — Project Setup ✅ COMPLETA
+## Phase 0 — Project Setup ✅
 
-- [x] Deps instalados: zustand, zod, react-hook-form, swr, @dnd-kit/core, @dnd-kit/sortable, qrcode, file-saver, @supabase/supabase-js, @supabase/ssr, lucide-react
-- [x] HeroUI v3 configurado (globals.css → `@import "@heroui/styles"`)
-- [x] Supabase client/server (`lib/supabase/client.ts`, `lib/supabase/server.ts`)
-- [x] Auth proxy (`proxy.ts`) protege `/dashboard/*`, redirige `/auth/*` si ya logueado
-- [x] Estructura de carpetas completa
-- [x] `lib/types.ts` con todos los tipos del dominio
-
----
-
-## Phase 1 — Database & Auth ✅ COMPLETA
-
-- [x] Schema SQL aplicado en Supabase (10 tablas)
-- [x] RLS habilitado en todas las tablas
-- [x] Helper `owns_restaurant()` con SECURITY DEFINER
-- [x] Políticas RLS: owner CRUD, anon INSERT en orders/reviews, public SELECT
-- [x] Políticas Storage para `restaurant-images` y `product-images`
-- [x] `/auth/login` — email + password → redirect /dashboard
-- [x] `/auth/register` — crea cuenta + fila en restaurants → redirect /dashboard
-- [x] Email confirmation: desactivado en dev (reactivar para prod)
+- [x] Deps: zustand, zod, react-hook-form, swr, @dnd-kit/*, qrcode, file-saver, @supabase/*, lucide-react
+- [x] HeroUI v3 + Tailwind v4 + Geist Variable font
+- [x] Supabase client/server helpers
+- [x] Auth proxy
+- [x] `lib/types.ts`
 
 ---
 
-## Phase 2 — Admin Panel ✅ COMPLETA
+## Phase 1 — Database & Auth ✅
 
-### 2a — Layout & Profile ✅
-- [x] Dashboard shell con sidebar (Inicio, Perfil, Menú, Mesas, Pedidos, Reseñas, Logout)
-- [x] Stats reales en /dashboard (productos, mesas, pedidos totales)
-- [x] `/dashboard/profile`: form completo + upload logo/cover a Supabase Storage
-
-### 2b — Menu Management ✅
-- [x] Categorías: crear, renombrar, eliminar
-- [x] Productos: CRUD completo, toggle disponibilidad, upload imagen
-- [x] Modificadores: grupos (required, max_selections) + opciones con price_delta
-
-### 2c — Table & QR Management ✅
-- [x] Agregar N mesas de una vez
-- [x] QR generado client-side con `qrcode`, descarga PNG individual o todos
-- [x] Toggle activo/inactivo por mesa
-- [x] Modo foodcourt: QR único para el local
+- [x] Schema SQL aplicado (10 tablas)
+- [x] RLS en todas las tablas
+- [x] Helper `owns_restaurant()` SECURITY DEFINER
+- [x] Políticas: owner CRUD, anon INSERT en orders/reviews, public SELECT
+- [x] Storage policies para `restaurant-images` y `product-images`
+- [x] `/auth/login`, `/auth/register`
+- [x] Email confirmation desactivado en dev
 
 ---
 
-## Phase 3 — Storefront — Client View 🔄 EN CURSO
+## Phase 2 — Admin Panel ✅
 
-**Goal:** cliente escanea QR → pide sin instalar nada. Mobile-first, estilo PedidosYa.
+### 2a — Layout & Profile
+- [x] Sidebar (Inicio, Perfil, Menú, Mesas, Pedidos, Reseñas, Cambiar local, Logout)
+- [x] Stats reales en home admin
+- [x] Profile form + upload logo/cover
 
-### 3a — Restaurant Profile Header
-- [ ] Cover image (full-width hero)
-- [ ] Logo + nombre + descripción
-- [ ] Social links: WhatsApp (wa.me), Instagram, Facebook, email
-- [ ] Promedio de estrellas + cantidad de reseñas
-- [ ] Badge de modo: "Pedido a mesa" / "Retiro en mostrador"
+### 2b — Menu Management
+- [x] Categorías CRUD
+- [x] Productos CRUD + toggle disponibilidad + upload imagen
+- [x] Modificadores: grupos + opciones
+
+### 2c — Table & QR Management
+- [x] Bulk-add mesas
+- [x] QR client-side, descarga PNG individual o todos
+- [x] Toggle activo/inactivo
+- [x] Modo foodcourt: QR único
+
+### 2d — Multi-restaurant ownership
+- [x] `/auth/select-restaurant` — picker de locales
+- [x] URL refactor a `/admin/[restaurantSlug]/*`
+- [x] Proxy sincroniza cookie de restaurante actual
+- [x] Server actions scopean por `restaurant.id`
+
+---
+
+## Phase 3 — Storefront ✅
+
+### 3a — Header
+- [x] Cover + logo + nombre + descripción
+- [x] Social chips con brand logos: WhatsApp, Instagram, Facebook, TikTok, email
+- [x] Estrellas + cantidad de reseñas
+- [x] Badge de modo
 
 ### 3b — Menu Browsing
-- [ ] Tabs de categorías (sticky, scroll horizontal)
-- [ ] Cards de producto: imagen, nombre, descripción truncada, precio
-- [ ] Tap → modal con detalle completo + selectores de modificadores
-- [ ] Modificadores: radio (required, single) o checkbox (multi)
-- [ ] Botón "Agregar al carrito" con selector de cantidad
+- [x] Tabs categorías sticky con scroll horizontal (`w-fit`)
+- [x] Cards producto
+- [x] Modal detalle + selectores de modificadores
+- [x] Radio (required) o checkbox (multi)
+- [x] Selector cantidad
 
 ### 3c — Cart
-- [ ] Botón flotante sticky-bottom con badge de cantidad
-- [ ] Sheet/modal de carrito: items, modificadores, subtotal, ajustar qty
-- [ ] Nota por item
+- [x] Botón flotante con badge
+- [x] Sheet con items, ajustar qty, nota por item
 
 ### 3d — Checkout
-- [ ] Formulario: nombre (req), teléfono (req), CI/RUC (opcional)
-- [ ] Nota general del pedido
-- [ ] Confirmar → INSERT orders + order_items + order_item_modifiers
-- [ ] Redirect → `/[slug]/order/[order_id]`
+- [x] Form: nombre, teléfono, CI/RUC, nota
+- [x] INSERT orders + items + modifiers
+- [x] Redirect a tracker
+- [x] Persiste active order en localStorage
 
-### 3e — Order Status Tracker
-- [ ] Stepper 4 fases estilo PedidosYa:
-  - `new` → "Tu pedido fue recibido"
-  - `preparing` → "Lo están preparando"
-  - `ready` (foodcourt) → "Listo para retirar"
-  - `ready` (table) → "Ya está en camino a tu mesa"
-  - `delivered` → "¡Buen provecho!"
-- [ ] Poll cada 15s con SWR `refreshInterval`
-- [ ] Resumen del pedido + número grande (foodcourt)
+### 3e — Order Tracker (rediseñado estilo Rappi/PedidosYa)
+- [x] Stepper horizontal con barra de progreso animada
+- [x] Ping pulse en step activo
+- [x] Sticky back-to-menu top bar
+- [x] CTA "Hacer otro pedido" → vuelve al storefront
+- [x] Foodcourt: número grande con gradient
+- [x] Poll cada 15s
+- [x] Resumen del pedido
+- [x] Live indicator
+- [x] Auto-clear active order on `delivered`
 
----
-
-## Phase 4 — Admin Kanban ⏳ PENDIENTE
-
-- [ ] `/dashboard/orders`: 4 columnas Nuevo / Preparando / Listo / Entregado
-- [ ] Cards con: número, mesa/modo, cliente, items, tiempo transcurrido
-- [ ] Drag entre columnas → UPDATE status
-- [ ] Refresh manual + auto-refresh cada 30s
-- [ ] Modal de detalle del pedido
-- [ ] Status update escribe `updated_at` (el cliente lo detecta via poll)
+### 3f — Active Order Banner
+- [x] Floating bottom card en storefront
+- [x] Polling cada 20s
+- [x] Stack sobre cart button cuando hay items
+- [x] Click → vuelve al tracker
 
 ---
 
-## Phase 5 — Reviews ⏳ PENDIENTE
+## Phase 4 — Admin Kanban ✅
 
-- [ ] Prompt de reseña post-entrega en la página de estado
-- [ ] Star picker + comentario → INSERT reviews
-- [ ] Storefront: promedio real de estrellas desde tabla reviews
-- [ ] `/dashboard/reviews`: lista con filtro por estrellas
-
----
-
-## Phase 6 — Demo Data & Polish ⏳ PENDIENTE
-
-- [ ] Seed script: 4–5 restaurantes demo con menús reales, modificadores, reseñas
-- [ ] QRs generados para todas las mesas demo
-- [ ] Audit mobile (storefront)
-- [ ] Skeletons con boneyard-js en pantallas con fetch
-- [ ] Estados de error (restaurante no encontrado, pedido no encontrado)
-- [ ] Página 404
+- [x] 4 columnas Nuevo / Preparando / Listo / Entregado
+- [x] Cards con número, mesa/modo, cliente, items, tiempo
+- [x] Drag entre columnas → UPDATE status
+- [x] Modal detalle
+- [x] Auto-refresh polling
 
 ---
 
-## Progreso
+## Phase 5 — Reviews ✅
 
-| Phase | Estado | Días reales |
-|---|---|---|
-| 0 Setup | ✅ Completa | 1 |
-| 1 DB + Auth | ✅ Completa | 1 |
-| 2 Admin Panel | ✅ Completa | 1 |
-| 3 Storefront | 🔄 En curso | — |
-| 4 Kanban | ⏳ Pendiente | — |
-| 5 Reviews | ⏳ Pendiente | — |
-| 6 Polish | ⏳ Pendiente | — |
+- [x] Prompt post-entrega
+- [x] Star picker + comentario → INSERT
+- [x] Promedio real desde tabla
+- [x] `/admin/[slug]/reviews` lista
 
 ---
 
-## Out of Scope para MVP
+## Phase 6 — Demo Data & Polish 🔄
 
+- [x] Seed script: 4 restaurantes (`seed.sql`)
+- [x] Skeletons HeroUI loading.tsx
+- [x] not-found.tsx global + storefront + order
+- [x] Geist Variable font global
+- [x] Design tokens aplicados (--accent, --surface, --foreground)
+- [x] Micro animaciones (fade-in, slide-up, ping, pulse)
+- [x] Migration TikTok aplicada en código (falta correr SQL en prod)
+- [ ] Audit visual mobile end-to-end
+- [ ] Generar QRs reales para mesas demo (manual desde admin)
+
+---
+
+## Falta para shipping MVP a Vercel
+
+### Bloqueantes
+- [ ] **Migrations remotas** — correr en Supabase prod:
+  - `migrations/add_tiktok.sql`
+  - `seed.sql` (reemplazar `OWNER_ID_HERE`)
+- [ ] **Vars Vercel**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] **Reactivar email confirmation** en Supabase Auth (estaba off para dev)
+- [ ] **Site URL + redirect URLs** en Supabase Auth → URL de Vercel
+- [ ] **Storage CORS** confirmar que acepta dominio Vercel
+
+### Nice-to-have pre-launch
+- [ ] Landing page real en `/` (hoy es placeholder)
+- [ ] Favicon + OG image + meta tags por restaurante
+- [ ] Audit mobile real device (iOS Safari + Chrome Android)
+- [ ] Probar flujo completo end-to-end con mesa real + QR físico
+- [ ] Limpiar `console.log`s y dead code
+- [ ] Configurar Vercel Analytics o similar
+
+### Post-MVP (out of scope)
 - Pago digital (Bancard, transferencia)
-- Notificaciones WhatsApp Business API
-- Staff roles / multi-user por restaurante
-- Impresión de ticket (kitchen printer)
+- WhatsApp Business API notifications
+- Staff roles / multi-user
+- Kitchen printer
 - Analytics avanzados
-- Supabase Realtime (Kanban usa polling)
+- Supabase Realtime (hoy polling)
 - App nativa

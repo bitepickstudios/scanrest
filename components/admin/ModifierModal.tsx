@@ -58,8 +58,8 @@ export default function ModifierModal({
     "rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-[modal-backdrop_0.18s_ease-out]">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl animate-[modal-in_0.18s_cubic-bezier(0.16,1,0.3,1)]">
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div>
             <h3 className="text-base font-semibold">Modificadores</h3>

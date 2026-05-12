@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button, Input } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import { createClient } from "@/lib/supabase/client";
+import { setActiveOrder } from "@/lib/active-order";
 
 export default function CartSheet({
   restaurantSlug,
@@ -99,22 +101,19 @@ export default function CartSheet({
     }
 
     clear();
+    setActiveOrder(restaurantSlug, order.id);
     router.push(`/${restaurantSlug}/order/${order.id}`);
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-400";
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      {/* Header */}
+    <div className="fixed inset-0 z-50 flex flex-col bg-white animate-[slide-up_0.22s_cubic-bezier(0.16,1,0.3,1)]">
       <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-4">
         <h2 className="text-lg font-bold">
           {step === "cart" ? "Tu pedido" : "Tus datos"}
         </h2>
-        <button onClick={onClose}>
+        <Button isIconOnly variant="ghost" size="sm" onPress={onClose}>
           <X size={20} className="text-neutral-500" />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -135,27 +134,40 @@ export default function CartSheet({
                     )}
                     {item.note && (
                       <p className="mt-0.5 text-xs italic text-neutral-400">
-                        "{item.note}"
+                        &quot;{item.note}&quot;
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={() => removeItem(item.key)}
+                  <Button
+                    isIconOnly
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => removeItem(item.key)}
                     className="text-neutral-300 hover:text-red-500"
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-1.5">
-                    <button onClick={() => updateQuantity(item.key, item.quantity - 1)}>
+                  <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-2 py-1">
+                    <Button
+                      isIconOnly
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => updateQuantity(item.key, item.quantity - 1)}
+                    >
                       <Minus size={14} />
-                    </button>
-                    <span className="text-sm font-semibold">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.key, item.quantity + 1)}>
+                    </Button>
+                    <span className="text-sm font-semibold w-5 text-center">{item.quantity}</span>
+                    <Button
+                      isIconOnly
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => updateQuantity(item.key, item.quantity + 1)}
+                    >
                       <Plus size={14} />
-                    </button>
+                    </Button>
                   </div>
                   <p className="text-sm font-bold">
                     Gs.{" "}
@@ -176,21 +188,21 @@ export default function CartSheet({
           <div className="px-4 py-4 space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium">Nombre *</label>
-              <input
+              <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Tu nombre"
-                className={inputClass}
+                className="w-full rounded-xl"
               />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Teléfono *</label>
-              <input
+              <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+595 9XX XXXXXX"
                 type="tel"
-                className={inputClass}
+                className="w-full rounded-xl"
               />
             </div>
             <div>
@@ -198,11 +210,11 @@ export default function CartSheet({
                 CI / RUC{" "}
                 <span className="text-neutral-400 font-normal">(opcional, para factura)</span>
               </label>
-              <input
+              <Input
                 value={ci}
                 onChange={(e) => setCi(e.target.value)}
                 placeholder="12345678"
-                className={inputClass}
+                className="w-full rounded-xl"
               />
             </div>
             <div>
@@ -215,7 +227,7 @@ export default function CartSheet({
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
                 placeholder="Alguna indicación general..."
-                className={inputClass}
+                className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
               />
             </div>
             {error && (
@@ -227,7 +239,6 @@ export default function CartSheet({
         )}
       </div>
 
-      {/* Footer */}
       <div className="border-t border-neutral-100 bg-white px-4 py-4 space-y-2">
         <div className="flex justify-between text-sm text-neutral-500 px-1">
           <span>Total</span>
@@ -237,27 +248,30 @@ export default function CartSheet({
         </div>
 
         {step === "cart" ? (
-          <button
-            onClick={() => setStep("checkout")}
-            className="w-full rounded-2xl bg-neutral-900 py-4 font-semibold text-white"
+          <Button
+            variant="primary"
+            onPress={() => setStep("checkout")}
+            className="w-full rounded-2xl py-4 h-auto font-semibold"
           >
             Continuar
-          </button>
+          </Button>
         ) : (
           <div className="flex gap-2">
-            <button
-              onClick={() => setStep("cart")}
-              className="rounded-2xl border border-neutral-200 px-5 py-4 text-sm font-medium text-neutral-700"
+            <Button
+              variant="secondary"
+              onPress={() => setStep("cart")}
+              className="rounded-2xl px-5 py-4 h-auto"
             >
               Atrás
-            </button>
-            <button
-              onClick={handleConfirmOrder}
-              disabled={loading || !name.trim() || !phone.trim()}
-              className="flex-1 rounded-2xl bg-neutral-900 py-4 font-semibold text-white disabled:opacity-50"
+            </Button>
+            <Button
+              variant="primary"
+              onPress={handleConfirmOrder}
+              isDisabled={loading || !name.trim() || !phone.trim()}
+              className="flex-1 rounded-2xl py-4 h-auto font-semibold"
             >
               {loading ? "Enviando..." : "Confirmar pedido"}
-            </button>
+            </Button>
           </div>
         )}
       </div>

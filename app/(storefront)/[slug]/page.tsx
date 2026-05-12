@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import StorefrontHeader from "@/components/storefront/StorefrontHeader";
 import MenuSection from "@/components/storefront/MenuSection";
 import CartButton from "@/components/storefront/CartButton";
+import ActiveOrderBanner from "@/components/storefront/ActiveOrderBanner";
 
 export default async function StorefrontPage({
   params,
@@ -55,6 +56,7 @@ export default async function StorefrontPage({
         tableId={tableId ?? null}
         mode={restaurant.mode}
       />
+      <ActiveOrderBanner slug={slug} />
       <CartButton
         restaurantSlug={slug}
         tableId={tableId ?? null}
