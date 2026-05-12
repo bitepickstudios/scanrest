@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChefHat, Bell, PartyPopper, ArrowLeft, Plus } from "lucide-react";
+import { CheckCircle2, ChefHat, Bell, PartyPopper, ArrowLeft, Plus, Table2 } from "lucide-react";
 import { Avatar, Button } from "@heroui/react";
 import { createClient } from "@/lib/supabase/client";
 import { clearActiveOrder } from "@/lib/active-order";
@@ -121,6 +121,24 @@ export default function OrderTracker({
           </div>
         </div>
       </div>
+
+      {/* Table info */}
+      {restaurant.mode === "table" && order.tables && (
+        <div className="px-4 pt-3 animate-fade-in">
+          <div className="flex items-center gap-3 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-bold">
+              {order.tables.number}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">Lo llevamos a</p>
+              <p className="text-sm font-bold text-[var(--foreground)] truncate">
+                {order.tables.label || `Mesa ${order.tables.number}`}
+              </p>
+            </div>
+            <Table2 size={16} className="text-[var(--muted)]" />
+          </div>
+        </div>
+      )}
 
       {/* Foodcourt: highlighted order number */}
       {restaurant.mode === "foodcourt" && (

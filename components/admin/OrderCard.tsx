@@ -68,17 +68,24 @@ export default function OrderCard({
       </p>
 
       {/* Table / mode */}
-      <div className="mt-1 flex items-center gap-1 text-xs text-neutral-400">
+      <div className="mt-1 flex items-center gap-1 text-xs">
         {mode === "table" ? (
-          <>
-            <Table2 size={11} />
-            {order.table_id ? `Mesa` : "Sin mesa"}
-          </>
+          order.tables ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-neutral-900 px-2 py-0.5 font-bold text-white">
+              <Table2 size={11} />
+              {order.tables.label || `Mesa ${order.tables.number}`}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-neutral-400">
+              <Table2 size={11} />
+              Sin mesa
+            </span>
+          )
         ) : (
-          <>
+          <span className="inline-flex items-center gap-1 text-neutral-400">
             <ShoppingBag size={11} />
             Retiro en mostrador
-          </>
+          </span>
         )}
       </div>
 

@@ -79,6 +79,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
+  tables?: { number: number; label: string | null } | null;
 }
 
 export interface OrderItem {

@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Phone, User, FileText } from "lucide-react";
+import { X, Phone, User, FileText, Table2 } from "lucide-react";
 import { Button } from "@heroui/react";
 import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
 
@@ -50,6 +50,18 @@ export default function OrderDetailModal({
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-4">
+          {mode === "table" && order.tables && (
+            <div className="flex items-center gap-3 rounded-xl bg-neutral-900 px-4 py-3 text-white">
+              <Table2 size={20} />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-white/60">Llevar a</p>
+                <p className="text-lg font-bold leading-tight">
+                  {order.tables.label || `Mesa ${order.tables.number}`}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-xl bg-neutral-50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <User size={14} className="text-neutral-400" />
@@ -64,11 +76,6 @@ export default function OrderDetailModal({
                 <FileText size={14} className="text-neutral-400" />
                 CI/RUC: {order.customer_ci}
               </div>
-            )}
-            {mode === "table" && (
-              <p className="text-xs text-neutral-400">
-                {order.table_id ? "Mesa asignada" : "Sin mesa (foodcourt)"}
-              </p>
             )}
           </div>
 

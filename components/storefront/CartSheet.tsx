@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Minus, Plus, Trash2 } from "lucide-react";
+import { X, Minus, Plus, Trash2, Table2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
@@ -12,11 +12,13 @@ export default function CartSheet({
   restaurantSlug,
   tableId,
   mode,
+  table,
   onClose,
 }: {
   restaurantSlug: string;
   tableId: string | null;
   mode: string;
+  table: { number: number; label: string | null } | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -186,6 +188,25 @@ export default function CartSheet({
           </div>
         ) : (
           <div className="px-4 py-4 space-y-4">
+            {mode === "table" && table && (
+              <div className="flex items-center gap-3 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 px-4 py-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-bold">
+                  {table.number}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">Pedido para</p>
+                  <p className="text-sm font-bold text-[var(--foreground)] truncate">
+                    {table.label || `Mesa ${table.number}`}
+                  </p>
+                </div>
+              </div>
+            )}
+            {mode === "table" && !table && (
+              <div className="flex items-start gap-2 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <p>No detectamos tu mesa. Volvé a escanear el QR de la mesa para que el mozo sepa adónde llevar el pedido.</p>
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-sm font-medium">Nombre *</label>
               <Input
@@ -267,7 +288,7 @@ export default function CartSheet({
             <Button
               variant="primary"
               onPress={handleConfirmOrder}
-              isDisabled={loading || !name.trim() || !phone.trim()}
+              isDisabled={loading || !name.trim() || !phone.trim() || (mode === "table" && !table)}
               className="flex-1 rounded-2xl py-4 h-auto font-semibold"
             >
               {loading ? "Enviando..." : "Confirmar pedido"}

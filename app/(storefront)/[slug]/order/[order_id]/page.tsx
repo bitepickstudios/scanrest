@@ -13,7 +13,7 @@ export default async function OrderStatusPage({
 
   const { data: order } = await supabase
     .from("orders")
-    .select(`*, order_items(*, order_item_modifiers(*))`)
+    .select(`*, order_items(*, order_item_modifiers(*)), tables(number, label)`)
     .eq("id", order_id)
     .single();
 

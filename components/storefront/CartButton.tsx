@@ -9,10 +9,12 @@ export default function CartButton({
   restaurantSlug,
   tableId,
   mode,
+  table,
 }: {
   restaurantSlug: string;
   tableId: string | null;
   mode: string;
+  table: { number: number; label: string | null } | null;
 }) {
   const [open, setOpen] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems());
@@ -43,6 +45,7 @@ export default function CartButton({
           restaurantSlug={restaurantSlug}
           tableId={tableId}
           mode={mode}
+          table={table}
           onClose={() => setOpen(false)}
         />
       )}

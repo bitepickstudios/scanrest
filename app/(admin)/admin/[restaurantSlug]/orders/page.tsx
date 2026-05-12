@@ -14,14 +14,14 @@ export default async function OrdersPage({
 
   const { data: orders } = await supabase
     .from("orders")
-    .select(`*, order_items(*, order_item_modifiers(*))`)
+    .select(`*, order_items(*, order_item_modifiers(*)), tables(number, label)`)
     .eq("restaurant_id", restaurant.id)
     .neq("status", "delivered")
     .order("created_at", { ascending: true });
 
   const { data: delivered } = await supabase
     .from("orders")
-    .select(`*, order_items(*, order_item_modifiers(*))`)
+    .select(`*, order_items(*, order_item_modifiers(*)), tables(number, label)`)
     .eq("restaurant_id", restaurant.id)
     .eq("status", "delivered")
     .order("updated_at", { ascending: false })
