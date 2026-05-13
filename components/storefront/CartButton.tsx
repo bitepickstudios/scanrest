@@ -4,17 +4,24 @@ import { useState } from "react";
 import { Button } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import CartSheet from "./CartSheet";
+import type { Product, ModifierGroup, Modifier } from "@/lib/types";
+
+type ProductFull = Product & {
+  modifier_groups: (ModifierGroup & { modifiers: Modifier[] })[];
+};
 
 export default function CartButton({
   restaurantSlug,
   tableId,
   mode,
   table,
+  allProducts,
 }: {
   restaurantSlug: string;
   tableId: string | null;
   mode: string;
   table: { number: number; label: string | null } | null;
+  allProducts: ProductFull[];
 }) {
   const [open, setOpen] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems());
@@ -46,6 +53,7 @@ export default function CartButton({
           tableId={tableId}
           mode={mode}
           table={table}
+          allProducts={allProducts}
           onClose={() => setOpen(false)}
         />
       )}

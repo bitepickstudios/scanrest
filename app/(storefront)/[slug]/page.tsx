@@ -46,13 +46,37 @@ export default async function StorefrontPage({
     .select("rating")
     .eq("restaurant_id", restaurant.id);
 
+  const { data: recentItems } = await supabase
+    .from("order_items")
+    .select("product_id, quantity, orders!inner(restaurant_id)")
+    .eq("orders.restaurant_id", restaurant.id)
+    .not("product_id", "is", null)
+    .order("id", { ascending: false })
+    .limit(500);
+
+  const productCounts = new Map<string, number>();
+  (recentItems ?? []).forEach((row: any) => {
+    if (!row.product_id) return;
+    productCounts.set(
+      row.product_id,
+      (productCounts.get(row.product_id) ?? 0) + (row.quantity ?? 0)
+    );
+  });
+  const allProductsFlat = ((categories ?? []) as any[]).flatMap((c: any) =>
+    (c.products ?? []).filter((p: any) => p.available)
+  );
+  const bestsellers = allProductsFlat
+    .filter((p) => productCounts.has(p.id))
+    .sort((a, b) => (productCounts.get(b.id) ?? 0) - (productCounts.get(a.id) ?? 0))
+    .slice(0, 5);
+
   const avgRating =
     reviews && reviews.length > 0
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : null;
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-28">
+    <div className="min-h-screen pb-28">
       <StorefrontHeader
         restaurant={restaurant}
         avgRating={avgRating}
@@ -76,6 +100,7 @@ export default async function StorefrontPage({
 
       <MenuSection
         categories={(categories ?? []) as any}
+        bestsellers={bestsellers as any}
         restaurantId={restaurant.id}
         restaurantSlug={slug}
         tableId={tableId ?? null}
@@ -87,6 +112,7 @@ export default async function StorefrontPage({
         tableId={tableId ?? null}
         mode={restaurant.mode}
         table={table}
+        allProducts={allProductsFlat as any}
       />
     </div>
   );

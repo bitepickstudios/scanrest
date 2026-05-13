@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { X, Minus, Plus } from "lucide-react";
+import { X } from "lucide-react";
 import { Button, Chip, Checkbox, Label } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import type { Product, ModifierGroup, Modifier } from "@/lib/types";
+import QuantityStepper from "./QuantityStepper";
 
 type ProductFull = Product & {
   modifier_groups: (ModifierGroup & { modifiers: Modifier[] })[];
@@ -13,16 +14,30 @@ type ProductFull = Product & {
 export default function ProductModal({
   product,
   onClose,
+  editKey,
+  initialQuantity,
+  initialNote,
+  initialModifierIds,
 }: {
   product: ProductFull;
   onClose: () => void;
+  editKey?: string;
+  initialQuantity?: number;
+  initialNote?: string;
+  initialModifierIds?: string[];
 }) {
   const addItem = useCartStore((s) => s.addItem);
-  const [quantity, setQuantity] = useState(1);
-  const [note, setNote] = useState("");
+  const updateItemAction = useCartStore((s) => s.updateItem);
+  const [quantity, setQuantity] = useState(initialQuantity ?? 1);
+  const [note, setNote] = useState(initialNote ?? "");
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const init: Record<string, string[]> = {};
-    product.modifier_groups.forEach((g) => { init[g.id] = []; });
+    const preset = new Set(initialModifierIds ?? []);
+    product.modifier_groups.forEach((g) => {
+      init[g.id] = (g.modifiers ?? [])
+        .filter((m) => preset.has(m.id))
+        .map((m) => m.id);
+    });
     return init;
   });
 
@@ -52,7 +67,11 @@ export default function ProductModal({
         .filter((m) => selected[g.id]?.includes(m.id))
         .map((m) => ({ id: m.id, name: m.name, price_delta: m.price_delta }))
     );
-    addItem(product, selectedModifiers, quantity, note);
+    if (editKey) {
+      updateItemAction(editKey, product, selectedModifiers, quantity, note);
+    } else {
+      addItem(product, selectedModifiers, quantity, note);
+    }
     onClose();
   }
 
@@ -82,7 +101,7 @@ export default function ProductModal({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
         <h2 className="text-xl font-bold">{product.name}</h2>
         {product.description && (
           <p className="mt-1 text-sm text-neutral-500">{product.description}</p>
@@ -159,36 +178,29 @@ export default function ProductModal({
         </div>
       </div>
 
-      <div className="border-t border-neutral-100 bg-white px-4 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-xl border border-neutral-200 px-2 py-1">
-            <Button
-              isIconOnly
-              variant="ghost"
-              size="sm"
-              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-            >
-              <Minus size={16} />
-            </Button>
-            <span className="w-5 text-center text-sm font-semibold">{quantity}</span>
-            <Button
-              isIconOnly
-              variant="ghost"
-              size="sm"
-              onPress={() => setQuantity((q) => q + 1)}
-            >
-              <Plus size={16} />
-            </Button>
-          </div>
+      <div
+        className="border-t border-neutral-100 bg-white px-4 pt-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      >
+        <div className="flex items-center gap-3">
+          <QuantityStepper
+            value={quantity}
+            onDecrement={() => setQuantity((q) => Math.max(1, q - 1))}
+            onIncrement={() => setQuantity((q) => q + 1)}
+          />
 
           <Button
             variant="primary"
             onPress={handleAdd}
             isDisabled={!canAdd()}
-            className="flex-1 justify-between rounded-2xl px-5 py-3 h-auto"
+            className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl px-4 text-sm font-semibold"
           >
-            <span>Agregar al pedido</span>
-            <span>Gs. {total.toLocaleString("es-PY")}</span>
+            <span className="truncate">
+              {editKey ? "Guardar cambios" : "Agregar al pedido"}
+            </span>
+            <span className="shrink-0 tabular-nums">
+              Gs. {total.toLocaleString("es-PY")}
+            </span>
           </Button>
         </div>
       </div>

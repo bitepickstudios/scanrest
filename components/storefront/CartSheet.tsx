@@ -1,24 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { X, Minus, Plus, Trash2, Table2, AlertCircle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { X, Trash2, AlertCircle, Pencil, Plus as PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import { createClient } from "@/lib/supabase/client";
 import { setActiveOrder } from "@/lib/active-order";
+import type { Product, ModifierGroup, Modifier } from "@/lib/types";
+import ProductModal from "./ProductModal";
+import QuantityStepper from "./QuantityStepper";
+
+type ProductFull = Product & {
+  modifier_groups: (ModifierGroup & { modifiers: Modifier[] })[];
+};
 
 export default function CartSheet({
   restaurantSlug,
   tableId,
   mode,
   table,
+  allProducts,
   onClose,
 }: {
   restaurantSlug: string;
   tableId: string | null;
   mode: string;
   table: { number: number; label: string | null } | null;
+  allProducts: ProductFull[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -30,6 +39,53 @@ export default function CartSheet({
   const [orderNote, setOrderNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    key: string;
+    product: ProductFull;
+    quantity: number;
+    note: string;
+    modifierIds: string[];
+  } | null>(null);
+  const [quickAdd, setQuickAdd] = useState<ProductFull | null>(null);
+
+  const productMap = useMemo(() => {
+    const map = new Map<string, ProductFull>();
+    allProducts.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [allProducts]);
+
+  const inCartIds = useMemo(
+    () => new Set(items.map((i) => i.product.id)),
+    [items]
+  );
+  const suggestions = useMemo(
+    () => allProducts.filter((p) => !inCartIds.has(p.id)).slice(0, 12),
+    [allProducts, inCartIds]
+  );
+
+  const addItem = useCartStore((s) => s.addItem);
+
+  function startEdit(itemKey: string) {
+    const item = items.find((i) => i.key === itemKey);
+    if (!item) return;
+    const full = productMap.get(item.product.id);
+    if (!full) return;
+    setEditing({
+      key: item.key,
+      product: full,
+      quantity: item.quantity,
+      note: item.note,
+      modifierIds: item.selectedModifiers.map((m) => m.id),
+    });
+  }
+
+  function quickAddSuggestion(p: ProductFull) {
+    if (p.modifier_groups && p.modifier_groups.length > 0) {
+      setQuickAdd(p);
+    } else {
+      addItem(p, [], 1, "");
+    }
+  }
 
   async function handleConfirmOrder() {
     if (!name.trim() || !phone.trim()) return;
@@ -121,70 +177,133 @@ export default function CartSheet({
       <div className="flex-1 overflow-y-auto">
         {step === "cart" ? (
           <div className="px-4 py-4 space-y-3">
-            {items.map((item) => (
-              <div
-                key={item.key}
-                className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{item.product.name}</p>
-                    {item.selectedModifiers.length > 0 && (
-                      <p className="mt-0.5 text-xs text-neutral-400">
-                        {item.selectedModifiers.map((m) => m.name).join(", ")}
-                      </p>
+            {items.map((item) => {
+              const full = productMap.get(item.product.id);
+              const hasVariants =
+                (full?.modifier_groups?.length ?? 0) > 0;
+              return (
+                <div
+                  key={item.key}
+                  className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3"
+                >
+                  <div className="flex items-start gap-3">
+                    {item.product.image_url ? (
+                      <img
+                        src={item.product.image_url}
+                        alt={item.product.name}
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 shrink-0 rounded-xl bg-neutral-200" />
                     )}
-                    {item.note && (
-                      <p className="mt-0.5 text-xs italic text-neutral-400">
-                        &quot;{item.note}&quot;
-                      </p>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm">{item.product.name}</p>
+                      {item.product.description && (
+                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
+                          {item.product.description}
+                        </p>
+                      )}
+                      {item.selectedModifiers.length > 0 && (
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {item.selectedModifiers.map((m) => m.name).join(", ")}
+                        </p>
+                      )}
+                      {item.note && (
+                        <p className="mt-0.5 text-xs italic text-neutral-400">
+                          &quot;{item.note}&quot;
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      {hasVariants && (
+                        <Button
+                          isIconOnly
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => startEdit(item.key)}
+                          className="text-neutral-400 hover:text-neutral-900"
+                          aria-label="Editar"
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                      )}
+                      <Button
+                        isIconOnly
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => removeItem(item.key)}
+                        className="text-neutral-300 hover:text-red-500"
+                        aria-label="Quitar"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    isIconOnly
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => removeItem(item.key)}
-                    className="text-neutral-300 hover:text-red-500"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
 
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-2 py-1">
-                    <Button
-                      isIconOnly
-                      variant="ghost"
+                  <div className="mt-3 flex items-center justify-between">
+                    <QuantityStepper
                       size="sm"
-                      onPress={() => updateQuantity(item.key, item.quantity - 1)}
-                    >
-                      <Minus size={14} />
-                    </Button>
-                    <span className="text-sm font-semibold w-5 text-center">{item.quantity}</span>
-                    <Button
-                      isIconOnly
-                      variant="ghost"
-                      size="sm"
-                      onPress={() => updateQuantity(item.key, item.quantity + 1)}
-                    >
-                      <Plus size={14} />
-                    </Button>
+                      value={item.quantity}
+                      onDecrement={() => updateQuantity(item.key, item.quantity - 1)}
+                      onIncrement={() => updateQuantity(item.key, item.quantity + 1)}
+                    />
+                    <p className="text-sm font-bold">
+                      Gs.{" "}
+                      {(
+                        (item.product.price +
+                          item.selectedModifiers.reduce(
+                            (s, m) => s + m.price_delta,
+                            0
+                          )) *
+                        item.quantity
+                      ).toLocaleString("es-PY")}
+                    </p>
                   </div>
-                  <p className="text-sm font-bold">
-                    Gs.{" "}
-                    {(
-                      (item.product.price +
-                        item.selectedModifiers.reduce(
-                          (s, m) => s + m.price_delta,
-                          0
-                        )) *
-                      item.quantity
-                    ).toLocaleString("es-PY")}
-                  </p>
+                </div>
+              );
+            })}
+
+            {suggestions.length > 0 && (
+              <div className="-mx-4 pt-2">
+                <h3 className="px-4 text-sm font-bold text-neutral-800">
+                  También te puede gustar
+                </h3>
+                <div className="mt-2 flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-2">
+                  {suggestions.map((p) => {
+                    const hasVariants =
+                      (p.modifier_groups?.length ?? 0) > 0;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => quickAddSuggestion(p)}
+                        className="relative w-32 shrink-0 overflow-hidden rounded-2xl border border-neutral-100 bg-white text-left active:scale-[0.98] transition-transform"
+                      >
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            className="h-24 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-24 w-full bg-neutral-100" />
+                        )}
+                        <div className="p-2">
+                          <p className="line-clamp-1 text-xs font-semibold text-neutral-900">
+                            {p.name}
+                          </p>
+                          <p className="mt-0.5 text-xs font-bold text-neutral-700">
+                            Gs. {p.price.toLocaleString("es-PY")}
+                          </p>
+                        </div>
+                        <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] shadow">
+                          <PlusIcon size={14} />
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+            )}
           </div>
         ) : (
           <div className="px-4 py-4 space-y-4">
@@ -296,6 +415,23 @@ export default function CartSheet({
           </div>
         )}
       </div>
+
+      {editing && (
+        <ProductModal
+          product={editing.product}
+          editKey={editing.key}
+          initialQuantity={editing.quantity}
+          initialNote={editing.note}
+          initialModifierIds={editing.modifierIds}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {quickAdd && (
+        <ProductModal
+          product={quickAdd}
+          onClose={() => setQuickAdd(null)}
+        />
+      )}
     </div>
   );
 }

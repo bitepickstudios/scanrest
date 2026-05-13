@@ -23,6 +23,13 @@ interface CartStore {
     quantity: number,
     note: string
   ) => void;
+  updateItem: (
+    key: string,
+    product: Product,
+    selectedModifiers: CartModifier[],
+    quantity: number,
+    note: string
+  ) => void;
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   updateNote: (key: string, note: string) => void;
@@ -47,6 +54,35 @@ export const useCartStore = create<CartStore>((set, get) => ({
       }
       return {
         items: [...state.items, { key, product, quantity, selectedModifiers, note }],
+      };
+    });
+  },
+
+  updateItem(key, product, selectedModifiers, quantity, note) {
+    const newKey = `${product.id}-${selectedModifiers.map((m) => m.id).sort().join(",")}`;
+    set((state) => {
+      const idx = state.items.findIndex((i) => i.key === key);
+      if (idx === -1) return state;
+      if (newKey !== key) {
+        const merged = state.items.find((i) => i.key === newKey);
+        if (merged) {
+          return {
+            items: state.items
+              .filter((i) => i.key !== key)
+              .map((i) =>
+                i.key === newKey
+                  ? { ...i, quantity: i.quantity + quantity, note }
+                  : i
+              ),
+          };
+        }
+      }
+      return {
+        items: state.items.map((i, n) =>
+          n === idx
+            ? { key: newKey, product, quantity, selectedModifiers, note }
+            : i
+        ),
       };
     });
   },
