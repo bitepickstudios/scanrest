@@ -27,7 +27,7 @@ export default function StorefrontHeader({
   return (
     <div className="bg-white">
       {/* Cover */}
-      <div className="relative h-44 w-full bg-gradient-to-br from-neutral-200 to-neutral-300">
+      <div className="relative h-32 w-full bg-gradient-to-br from-neutral-200 to-neutral-300">
         {restaurant.cover_url && (
           <img
             src={restaurant.cover_url}

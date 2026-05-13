@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { X, Trash2, AlertCircle, Pencil, Plus as PlusIcon } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { X, Trash2, AlertCircle, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
@@ -10,6 +10,7 @@ import { setActiveOrder } from "@/lib/active-order";
 import type { Product, ModifierGroup, Modifier } from "@/lib/types";
 import ProductModal from "./ProductModal";
 import QuantityStepper from "./QuantityStepper";
+import ProductCard from "./ProductCard";
 
 type ProductFull = Product & {
   modifier_groups: (ModifierGroup & { modifiers: Modifier[] })[];
@@ -63,7 +64,13 @@ export default function CartSheet({
     [allProducts, inCartIds]
   );
 
-  const addItem = useCartStore((s) => s.addItem);
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   function startEdit(itemKey: string) {
     const item = items.find((i) => i.key === itemKey);
@@ -79,13 +86,6 @@ export default function CartSheet({
     });
   }
 
-  function quickAddSuggestion(p: ProductFull) {
-    if (p.modifier_groups && p.modifier_groups.length > 0) {
-      setQuickAdd(p);
-    } else {
-      addItem(p, [], 1, "");
-    }
-  }
 
   async function handleConfirmOrder() {
     if (!name.trim() || !phone.trim()) return;
@@ -268,39 +268,15 @@ export default function CartSheet({
                 <h3 className="px-4 text-sm font-bold text-neutral-800">
                   También te puede gustar
                 </h3>
-                <div className="mt-2 flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-2">
-                  {suggestions.map((p) => {
-                    const hasVariants =
-                      (p.modifier_groups?.length ?? 0) > 0;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => quickAddSuggestion(p)}
-                        className="relative w-32 shrink-0 overflow-hidden rounded-2xl border border-neutral-100 bg-white text-left active:scale-[0.98] transition-transform"
-                      >
-                        {p.image_url ? (
-                          <img
-                            src={p.image_url}
-                            alt={p.name}
-                            className="h-24 w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-24 w-full bg-neutral-100" />
-                        )}
-                        <div className="p-2">
-                          <p className="line-clamp-1 text-xs font-semibold text-neutral-900">
-                            {p.name}
-                          </p>
-                          <p className="mt-0.5 text-xs font-bold text-neutral-700">
-                            Gs. {p.price.toLocaleString("es-PY")}
-                          </p>
-                        </div>
-                        <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] shadow">
-                          <PlusIcon size={14} />
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="mt-2 flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-3">
+                  {suggestions.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      compact
+                      onOpen={() => setQuickAdd(p)}
+                    />
+                  ))}
                 </div>
               </div>
             )}

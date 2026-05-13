@@ -4,6 +4,7 @@ import StorefrontHeader from "@/components/storefront/StorefrontHeader";
 import MenuSection from "@/components/storefront/MenuSection";
 import CartButton from "@/components/storefront/CartButton";
 import ActiveOrderBanner from "@/components/storefront/ActiveOrderBanner";
+import TableRestorer from "@/components/storefront/TableRestorer";
 
 export default async function StorefrontPage({
   params,
@@ -76,7 +77,8 @@ export default async function StorefrontPage({
       : null;
 
   return (
-    <div className="min-h-screen pb-28">
+    <div className="min-h-screen bg-background pb-28">
+      <TableRestorer slug={slug} currentTableId={tableId ?? null} />
       <StorefrontHeader
         restaurant={restaurant}
         avgRating={avgRating}
