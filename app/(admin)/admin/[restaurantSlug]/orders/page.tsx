@@ -39,6 +39,7 @@ export default async function OrdersPage({
         <KanbanBoard
           initialOrders={[...(orders ?? []), ...(delivered ?? [])] as any}
           mode={restaurant.mode as "table" | "foodcourt"}
+          restaurantId={restaurant.id}
         />
       </div>
     </div>

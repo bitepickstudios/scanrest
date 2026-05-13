@@ -7,7 +7,7 @@ import { Avatar, Button } from "@heroui/react";
 import { createClient } from "@/lib/supabase/client";
 import { clearActiveOrder } from "@/lib/active-order";
 import ReviewForm from "./ReviewForm";
-import type { Order, OrderItem, OrderItemModifier } from "@/lib/types";
+import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
 
 type OrderFull = Order & {
   order_items: (OrderItem & { order_item_modifiers: OrderItemModifier[] })[];
@@ -52,18 +52,46 @@ export default function OrderTracker({
 
   useEffect(() => {
     const supabase = createClient();
-    const interval = setInterval(async () => {
+    let cancelled = false;
+
+    async function refetch() {
       const { data } = await supabase
         .from("orders")
         .select("status, updated_at")
         .eq("id", orderId)
         .single();
-      if (data && data.status !== order.status) {
-        setOrder((prev) => ({ ...prev, status: data.status }));
-      }
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [orderId, order.status]);
+      if (cancelled || !data) return;
+      const next = data.status as OrderStatus;
+      setOrder((prev) => (prev.status === next ? prev : { ...prev, status: next }));
+    }
+
+    const channel = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const raw = (payload.new as { status?: string }).status;
+          if (!raw) return;
+          const next = raw as OrderStatus;
+          setOrder((prev) => (prev.status === next ? prev : { ...prev, status: next }));
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(refetch, 60000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
 
   useEffect(() => {
     if (order.status === "delivered") {

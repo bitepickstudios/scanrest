@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   DndContext,
   DragOverlay,
@@ -33,9 +34,11 @@ const COLUMNS: { id: OrderStatus; label: string; color: string }[] = [
 export default function KanbanBoard({
   initialOrders,
   mode,
+  restaurantId,
 }: {
   initialOrders: OrderFull[];
   mode: "table" | "foodcourt";
+  restaurantId: string;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -46,6 +49,28 @@ export default function KanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`kanban-${restaurantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `restaurant_id=eq.${restaurantId}`,
+        },
+        () => {
+          router.refresh();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [restaurantId, router]);
 
   const activeOrder = activeId ? orders.find((o) => o.id === activeId) ?? null : null;
 

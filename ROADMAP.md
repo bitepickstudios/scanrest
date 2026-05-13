@@ -1,4 +1,4 @@
-# ScanRest — MVP Roadmap
+# ScanRest — Roadmap
 
 ## Stack
 
@@ -48,6 +48,8 @@
 - Storage RLS: buckets públicos necesitan políticas en `storage.objects`
 - Multi-tenant: URL drives slug; proxy syncs `current_restaurant_id` cookie para server actions
 - HeroUI v3 Tabs full-width default — fix con `w-fit *:w-fit *:px-3`
+- Tailwind v4: utilidades custom via `@utility name { ... }` en globals.css
+- Mesa persistente: `lib/active-table.ts` localStorage TTL 6h, `TableRestorer` client component bridge
 
 ---
 
@@ -74,6 +76,8 @@ reviews (id, restaurant_id, customer_name, rating, comment, created_at)
 
 ---
 
+# COMPLETADO ✅
+
 ## Phase 0 — Project Setup ✅
 
 - [x] Deps: zustand, zod, react-hook-form, swr, @dnd-kit/*, qrcode, file-saver, @supabase/*, lucide-react
@@ -82,99 +86,49 @@ reviews (id, restaurant_id, customer_name, rating, comment, created_at)
 - [x] Auth proxy
 - [x] `lib/types.ts`
 
----
-
 ## Phase 1 — Database & Auth ✅
 
 - [x] Schema SQL aplicado (10 tablas)
 - [x] RLS en todas las tablas
 - [x] Helper `owns_restaurant()` SECURITY DEFINER
 - [x] Políticas: owner CRUD, anon INSERT en orders/reviews, public SELECT
-- [x] Storage policies para `restaurant-images` y `product-images`
+- [x] Storage policies `restaurant-images` y `product-images`
 - [x] `/auth/login`, `/auth/register`
-- [x] Email confirmation desactivado en dev
-
----
+- [x] Email confirmation off en dev
 
 ## Phase 2 — Admin Panel ✅
 
-### 2a — Layout & Profile
-- [x] Sidebar (Inicio, Perfil, Menú, Mesas, Pedidos, Reseñas, Cambiar local, Logout)
-- [x] Stats reales en home admin
+- [x] Layout + sidebar
+- [x] Stats reales home admin
 - [x] Profile form + upload logo/cover
-
-### 2b — Menu Management
-- [x] Categorías CRUD
-- [x] Productos CRUD + toggle disponibilidad + upload imagen
+- [x] Categorías + productos CRUD + toggle disponibilidad + upload imagen
 - [x] Modificadores: grupos + opciones
-
-### 2c — Table & QR Management
-- [x] Bulk-add mesas
-- [x] QR client-side, descarga PNG individual o todos
-- [x] Toggle activo/inactivo
+- [x] Bulk-add mesas + QR descarga PNG
+- [x] Toggle activo/inactivo mesas
 - [x] Modo foodcourt: QR único
-
-### 2d — Multi-restaurant ownership
-- [x] `/auth/select-restaurant` — picker de locales
+- [x] `/auth/select-restaurant` multi-restaurant picker
 - [x] URL refactor a `/admin/[restaurantSlug]/*`
-- [x] Proxy sincroniza cookie de restaurante actual
+- [x] Proxy cookie current restaurant
 - [x] Server actions scopean por `restaurant.id`
-
----
 
 ## Phase 3 — Storefront ✅
 
-### 3a — Header
-- [x] Cover + logo + nombre + descripción
-- [x] Social chips con brand logos: WhatsApp, Instagram, Facebook, TikTok, email
-- [x] Estrellas + cantidad de reseñas
-- [x] Badge de modo
-
-### 3b — Menu Browsing
-- [x] Tabs categorías sticky con scroll horizontal (`w-fit`)
-- [x] Cards producto
-- [x] Modal detalle + selectores de modificadores
-- [x] Radio (required) o checkbox (multi)
+- [x] Header: cover, logo, nombre, descripción, social chips, rating
+- [x] Tabs categorías sticky scroll horizontal
+- [x] Cards producto + modal detalle con selectores modificadores
 - [x] Selector cantidad
-
-### 3c — Cart
-- [x] Botón flotante con badge
-- [x] Sheet con items, ajustar qty, nota por item
-
-### 3d — Checkout
-- [x] Form: nombre, teléfono, CI/RUC, nota
-- [x] INSERT orders + items + modifiers
-- [x] Redirect a tracker
-- [x] Persiste active order en localStorage
-
-### 3e — Order Tracker (rediseñado estilo Rappi/PedidosYa)
-- [x] Stepper horizontal con barra de progreso animada
-- [x] Ping pulse en step activo
-- [x] Sticky back-to-menu top bar
-- [x] CTA "Hacer otro pedido" → vuelve al storefront
-- [x] Foodcourt: número grande con gradient
-- [x] Poll cada 15s
-- [x] Resumen del pedido
-- [x] Live indicator
-- [x] Auto-clear active order on `delivered`
-
-### 3f — Active Order Banner
-- [x] Floating bottom card en storefront
-- [x] Polling cada 20s
-- [x] Stack sobre cart button cuando hay items
-- [x] Click → vuelve al tracker
-
----
+- [x] Carrito flotante + sheet
+- [x] Checkout (nombre/tel/CI/nota) + INSERT orders+items+modifiers
+- [x] Order Tracker estilo Rappi (stepper horizontal, ping, progreso)
+- [x] Active order banner flotante con polling 20s
+- [x] Mesa visible en todo el flujo
 
 ## Phase 4 — Admin Kanban ✅
 
 - [x] 4 columnas Nuevo / Preparando / Listo / Entregado
-- [x] Cards con número, mesa/modo, cliente, items, tiempo
 - [x] Drag entre columnas → UPDATE status
-- [x] Modal detalle
+- [x] Modal detalle pedido
 - [x] Auto-refresh polling
-
----
 
 ## Phase 5 — Reviews ✅
 
@@ -183,46 +137,202 @@ reviews (id, restaurant_id, customer_name, rating, comment, created_at)
 - [x] Promedio real desde tabla
 - [x] `/admin/[slug]/reviews` lista
 
+## Phase 6 — Polish Demo ✅
+
+- [x] Seed script (4 restaurantes)
+- [x] Skeletons + not-found pages
+- [x] Geist Variable font
+- [x] Design tokens (--accent, --surface, --foreground)
+- [x] Micro animaciones
+- [x] Multi-restaurant URL refactor
+- [x] Order tracker rediseñado
+
+## Phase 7 — Storefront UX upgrade ✅
+
+- [x] PDP modal: padding fix bottom bar + safe-area inset
+- [x] Cart sheet: imagen, descripción, edit variantes, lock body scroll
+- [x] Carrusel "También te puede gustar" en cart
+- [x] Search bar sticky top con filtrado
+- [x] Quick-add `+` en product card (con/sin variantes)
+- [x] Estado "en cart": check + lápiz + stepper inline
+- [x] Sección bestsellers horizontal scroll
+- [x] QuantityStepper unificado (1 diseño global)
+- [x] ProductCard reusable (compact + full)
+- [x] Mesa persistente vía localStorage + TTL 6h (`TableRestorer`)
+- [x] `scrollbar-hide` utility global
+
 ---
 
-## Phase 6 — Demo Data & Polish 🔄
+# PENDIENTE 🚧
 
-- [x] Seed script: 4 restaurantes (`seed.sql`)
-- [x] Skeletons HeroUI loading.tsx
-- [x] not-found.tsx global + storefront + order
-- [x] Geist Variable font global
-- [x] Design tokens aplicados (--accent, --surface, --foreground)
-- [x] Micro animaciones (fade-in, slide-up, ping, pulse)
-- [x] Migration TikTok aplicada en código (falta correr SQL en prod)
-- [ ] Audit visual mobile end-to-end
-- [ ] Generar QRs reales para mesas demo (manual desde admin)
+## Pre-ship MVP (bloqueantes)
 
----
-
-## Falta para shipping MVP a Vercel
-
-### Bloqueantes
-- [ ] **Migrations remotas** — correr en Supabase prod:
-  - `migrations/add_tiktok.sql`
-  - `seed.sql` (reemplazar `OWNER_ID_HERE`)
-- [ ] **Vars Vercel**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [ ] **Reactivar email confirmation** en Supabase Auth (estaba off para dev)
-- [ ] **Site URL + redirect URLs** en Supabase Auth → URL de Vercel
-- [ ] **Storage CORS** confirmar que acepta dominio Vercel
-
-### Nice-to-have pre-launch
-- [ ] Landing page real en `/` (hoy es placeholder)
-- [ ] Favicon + OG image + meta tags por restaurante
+- [ ] Correr `migrations/add_tiktok.sql` en Supabase prod
+- [ ] Correr `seed.sql` (reemplazar `OWNER_ID_HERE`)
+- [ ] Vars Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] Reactivar email confirmation Supabase Auth
+- [ ] Site URL + redirect URLs Supabase Auth → Vercel
+- [ ] Storage CORS dominio Vercel
 - [ ] Audit mobile real device (iOS Safari + Chrome Android)
-- [ ] Probar flujo completo end-to-end con mesa real + QR físico
-- [ ] Limpiar `console.log`s y dead code
-- [ ] Configurar Vercel Analytics o similar
+- [ ] Probar flujo end-to-end con QR físico
+- [ ] Limpiar console.logs
 
-### Post-MVP (out of scope)
-- Pago digital (Bancard, transferencia)
-- WhatsApp Business API notifications
-- Staff roles / multi-user
-- Kitchen printer
-- Analytics avanzados
-- Supabase Realtime (hoy polling)
-- App nativa
+---
+
+## P0 — Antes de vender al primer cliente
+
+Necesario para producto autoservicio real.
+
+- [ ] **Realtime Supabase para estado pedido**
+  - Reemplazar polling 15s/20s en OrderTracker y ActiveOrderBanner
+  - `supabase.channel().on('postgres_changes', { event: 'UPDATE', table: 'orders' })`
+  - Fallback polling si websocket falla
+- [ ] **Onboarding self-serve crear restaurante**
+  - Wizard post-signup: nombre, slug, modo, contacto básico
+  - Skip a admin home tras crear
+  - Sin esto no hay registro autoservicio
+- [ ] **Landing page real en `/`**
+  - Hero + features + CTA signup
+  - Sección "Cómo funciona" 3 pasos
+  - Pricing (aunque sea "free hasta X pedidos/mes")
+  - Footer con links
+
+---
+
+## P1 — Primeros 5-10 clientes
+
+Cosas que el dueño pide día 2.
+
+- [ ] **Notificaciones WhatsApp via número scanrest**
+  - WhatsApp Cloud API (Meta) — 1 número scanrest, plantillas aprobadas
+  - Trigger en update `orders.status` → edge function → API
+  - Plantillas: "listo para retirar", "preparando", etc.
+  - Tabla `notifications_log` para auditar envíos
+- [ ] **Analíticas ventas básicas**
+  - Top productos / categorías
+  - Ventas por día/hora (heatmap)
+  - Ticket promedio
+  - Conversión (visitas QR → pedidos)
+  - Gráficos en `/admin/[slug]` home (reemplazar stats actuales)
+- [ ] **Carga productos por CSV**
+  - Plantilla descargable
+  - Upload + preview + validación Zod
+  - Crear/upsert categorías inferidas
+  - Skip rows con error
+- [ ] **Edición estilos storefront**
+  - Color primario (accent picker)
+  - Tipografía (3-4 opciones curadas)
+  - Logo grande/chico, fondo blanco/oscuro
+  - Preview live
+  - Tabla `restaurant_theme` o columnas en `restaurants`
+- [ ] **Optimizar UI admin**
+  - Audit visual completo
+  - Estados loading consistentes
+  - Mobile admin (mozos en tablet/teléfono)
+- [ ] **Llamar al mozo desde storefront**
+  - Botón flotante "Necesito ayuda" / "Traer cuenta"
+  - Tabla `table_calls (id, table_id, type, created_at, resolved_at)`
+  - Notif en admin Kanban + sonido
+
+---
+
+## P2 — Con tracción (10-50 clientes)
+
+- [ ] **Roles staff (Admin / Cocina / Mozo)**
+  - Tabla `restaurant_staff (user_id, restaurant_id, role)`
+  - RLS por rol
+  - Cocina: solo Kanban, sin precios/datos cliente
+  - Mozo: Kanban + mesas + llamadas + cobro
+- [ ] **Tip/propina configurable checkout**
+  - Sugerencias 10/15/20% + custom
+  - Persistir en `orders.tip_amount`
+- [ ] **Dividir cuenta (split bill)**
+  - En tracker: "Dividir entre N comensales"
+  - Genera links únicos por comensal con monto parcial
+  - Solo display; el pago real depende de Bancard P2
+- [ ] **Pre-pedido / agendar hora**
+  - En storefront: toggle "ahora" vs "agendar"
+  - `orders.scheduled_for` timestamp
+  - Validar horarios apertura (nueva config `restaurant_hours`)
+- [ ] **Reservas mesa**
+  - Tabla `reservations (id, restaurant_id, customer_name, phone, party_size, scheduled_for, status, table_id?)`
+  - Storefront: botón "Reservar mesa"
+  - Admin: lista + confirmar/rechazar
+- [ ] **Sistema "mesa lista" (lista espera virtual)**
+  - Cliente se anota afuera del local
+  - Tabla `waitlist`
+  - Cuando admin libera mesa → ping (WhatsApp/SMS)
+- [ ] **Customer profile sin login**
+  - Lookup por teléfono+CI
+  - Historial pedidos personal (cualquier local scanrest)
+  - Página pública `/me/[phone]` con OTP corto vía WhatsApp
+- [ ] **Multi-idioma menú (ES/EN/PT)**
+  - Columnas `name_en`, `name_pt`, `description_en/pt` o tabla `product_translations`
+  - Selector idioma en storefront header
+  - Auto-detect via `Accept-Language`
+- [ ] **Impresora térmica ticket cocina**
+  - Print web (CSS print + 80mm width)
+  - O integración ESC/POS via PrintNode/QZ Tray
+  - Auto-imprime al pasar a "preparando"
+- [ ] **Promociones / cupones**
+  - Tabla `coupons (code, type, value, min_amount, expires_at, usage_limit)`
+  - Storefront checkout: campo código
+  - Admin: gestión + estadísticas uso
+- [ ] **Ingredientes / calorías / tags dietarios**
+  - Columnas `ingredients`, `calories`, `tags[]` (vegano/gluten-free/etc)
+  - Filtros en storefront
+- [ ] **Sucursales (multi-location)**
+  - Tabla `branches` o `restaurants.parent_id`
+  - Admin: switcher sucursal
+  - Storefront: selector ubicación si hay >1
+- [ ] **Pasarela Bancard online**
+  - KYC por comercio
+  - Webhook confirmación pago → marca order paid
+  - Split commission scanrest
+  - Compliance + reconciliación
+
+---
+
+## P3 — Long term / Estratégicos
+
+- [ ] **Sugerencias IA en storefront**
+  - Cliente pregunta "qué me recomendas, algo salado rico y barato"
+  - Endpoint con Claude/GPT + contexto menú + reseñas
+  - UI: input estilo chat dentro del menú
+- [ ] **Sistema fidelidad cross-restaurant**
+  - Cliente final se registra
+  - Pedido + reseña en cualquier local scanrest → entrada sorteo mensual
+  - Vale canjeable en cualquier local adherido
+  - Requiere masa crítica ≥20 locales
+- [ ] **Mozos asignados a mesas/zonas**
+  - Tablas `zones`, `table_zone_assignments`, `staff_zone_assignments`
+  - Mozo solo ve pedidos de su zona
+- [ ] **Marketplace público**
+  - `scanrest.com/asuncion` → lista locales adheridos
+  - SEO city pages
+  - Adquisición clientes finales
+- [ ] **API REST para ERPs**
+  - OAuth2 + scopes
+  - Endpoints orders, products, categories
+  - Webhooks salientes (POST a URL del comercio en status change)
+- [ ] **App nativa o PWA instalable**
+  - PWA + Add to Home Screen prompt
+  - Habilita Web Push en iOS
+
+---
+
+## Ideas backlog (sin fecha)
+
+- Modo pre-pago (paga antes de cocinar; cero no-show)
+- Caja / cierre Z diario + arqueo
+- Reseñas con foto + moderación
+- Logs auditoría
+- Inventario / stock con auto-decrement
+- Bulk QR generation: PDF con todas las mesas + branding
+- Modo offline parcial cocina
+- NFC alternativo a QR
+- Dark mode storefront
+- Apple/Google Wallet loyalty card
+- Programa referidos entre restaurantes
+- Compatibilidad multi-currency / impuestos por país
+- Webhooks salientes (antes que API REST completa)

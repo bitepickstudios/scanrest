@@ -50,10 +50,36 @@ export default function ActiveOrderBanner({ slug }: { slug: string }) {
     }
 
     fetchStatus(id);
-    const interval = setInterval(() => fetchStatus(id), 20000);
+
+    const channel = supabase
+      .channel(`active-order-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          const row = payload.new as { status?: string; order_number?: number };
+          if (cancelled) return;
+          if (row.status === "delivered") {
+            clearActiveOrder(slug);
+            setOrderId(null);
+            return;
+          }
+          if (row.status) setStatus(row.status);
+          if (typeof row.order_number === "number") setOrderNumber(row.order_number);
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(() => fetchStatus(id), 60000);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, [slug]);
 
