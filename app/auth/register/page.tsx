@@ -10,13 +10,14 @@ export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [restaurantName, setRestaurantName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     setLoading(true);
 
     const supabase = createClient();
@@ -38,37 +39,15 @@ export default function RegisterPage() {
       return;
     }
 
-    // No session = email confirmation required. Store pending data and show message.
     if (!data.session) {
       setLoading(false);
-      setError(
-        "Revisá tu email y confirmá tu cuenta para continuar. Luego volvé a ingresar."
+      setInfo(
+        "Revisá tu email y confirmá tu cuenta. Luego volvé a ingresar para configurar tu local."
       );
       return;
     }
 
-    const slug = restaurantName
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    const { error: restaurantError } = await supabase
-      .from("restaurants")
-      .insert({
-        owner_id: data.user.id,
-        name: restaurantName,
-        slug,
-      });
-
-    if (restaurantError) {
-      setError(restaurantError.message);
-      setLoading(false);
-      return;
-    }
-
-    router.push(`/admin/${slug}`);
+    router.push("/auth/onboarding");
     router.refresh();
   }
 
@@ -94,24 +73,6 @@ export default function RegisterPage() {
           className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm"
         >
           <div className="space-y-4">
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="restaurant"
-              >
-                Nombre del restaurante
-              </label>
-              <input
-                id="restaurant"
-                type="text"
-                required
-                value={restaurantName}
-                onChange={(e) => setRestaurantName(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
-                placeholder="Ej: El Asador de Lucho"
-              />
-            </div>
-
             <div>
               <label className="mb-1 block text-sm font-medium" htmlFor="email">
                 Email
@@ -151,6 +112,11 @@ export default function RegisterPage() {
             {error && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
+              </p>
+            )}
+            {info && (
+              <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                {info}
               </p>
             )}
 

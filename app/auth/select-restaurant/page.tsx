@@ -12,7 +12,7 @@ async function selectAction(formData: FormData) {
 export default async function SelectRestaurantPage() {
   const { restaurants } = await listOwnedRestaurants();
 
-  if (restaurants.length === 0) redirect("/auth/register");
+  if (restaurants.length === 0) redirect("/auth/onboarding");
   if (restaurants.length === 1) redirect(`/admin/${restaurants[0].slug}`);
 
   return (

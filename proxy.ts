@@ -41,7 +41,8 @@ export async function proxy(request: NextRequest) {
   if (
     user &&
     path.startsWith("/auth") &&
-    path !== "/auth/select-restaurant"
+    path !== "/auth/select-restaurant" &&
+    path !== "/auth/onboarding"
   ) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
