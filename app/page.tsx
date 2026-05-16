@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Package,
   Printer,
-  QrCode,
   ShieldCheck,
   Smartphone,
   Star,
@@ -23,6 +22,12 @@ import {
   Zap,
 } from "lucide-react";
 import { Button, Chip } from "@heroui/react";
+import HeroWizard from "@/app/components/HeroWizard";
+import Nav from "@/app/components/Nav";
+import Reveal from "@/app/components/Reveal";
+import RevealHeading from "@/app/components/RevealHeading";
+import StaggerGrid from "@/app/components/StaggerGrid";
+import InlinePop from "@/app/components/InlinePop";
 
 export const metadata = {
   title: "ScanRest — La forma más simple de vender desde tu salón",
@@ -40,7 +45,6 @@ export default function HomePage() {
       <Audience />
       <CommercialBenefit />
       <HowItWorks />
-      <Differentiators />
       <Testimonials />
       <FinalCta />
       <Footer />
@@ -48,189 +52,75 @@ export default function HomePage() {
   );
 }
 
-function Nav() {
-  return (
-    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center">
-          <Image
-            src="/scanrest.svg"
-            alt="ScanRest"
-            width={2051}
-            height={437}
-            priority
-            className="h-7 w-auto"
-          />
-        </Link>
-        <Chip
-          size="sm"
-          variant="soft"
-          color="accent"
-          className="ml-2 hidden sm:inline-flex"
-        >
-        </Chip>
-        <nav className="ml-auto hidden items-center gap-7 text-sm font-medium text-[var(--muted)] md:flex">
-          <a href="#how" className="hover:text-[var(--foreground)]">
-            Cómo funciona
-          </a>
-          <a href="#audience" className="hover:text-[var(--foreground)]">
-            Para quién es
-          </a>
-          <a href="#why" className="hover:text-[var(--foreground)]">
-            Por qué ScanRest
-          </a>
-        </nav>
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
-          <Link href="/auth/login" className="hidden sm:inline-block">
-            <Button variant="ghost" size="sm">
-              Ingresar
-            </Button>
-          </Link>
-          <Link href="/auth/register">
-            <Button variant="primary" size="sm">
-              Empezar gratis
-              <ArrowRight size={14} />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function Hero() {
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-12 sm:pt-20">
+    <section className="relative overflow-hidden px-4 pb-16 pt-40 sm:pb-20 sm:pt-48 md:pt-40">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[var(--accent)]/15 via-transparent to-transparent" />
-      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
-        <div>
-          <Chip variant="soft" color="accent" size="sm" className="mb-5">
-            <span className="text-xs font-medium">
-              Hecho en Paraguay · Beta abierta
-            </span>
-          </Chip>
-          <h1 className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
-            La forma más simple de vender desde tu salón
-          </h1>
-          <p className="mt-5 max-w-lg text-lg text-[var(--muted)]">
-            ScanRest convierte cada mesa en un punto de venta. Tus clientes
-            escanean, piden y pagan sin esperar al mozo. Vos te enfocás en
-            cocinar.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link href="/auth/register">
-              <Button variant="primary" size="lg">
-                Crear mi restaurante
-                <ArrowRight size={16} />
-              </Button>
-            </Link>
-            <a href="#how">
-              <Button variant="secondary" size="lg">
-                Ver cómo funciona
-              </Button>
-            </a>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--muted)]">
-            <span className="inline-flex items-center gap-1">
-              <Check size={14} className="text-[var(--accent)]" />
-              Sin tarjeta para arrancar
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Check size={14} className="text-[var(--accent)]" />
-              Sin comisiones por pedido
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Check size={14} className="text-[var(--accent)]" />
-              Setup en 5 minutos
-            </span>
-          </div>
+      <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-[3fr_2fr] md:gap-10">
+        <div className="flex flex-col items-start">
+          <RevealHeading
+            as="h1"
+            className="font-[family-name:var(--font-heading)] text-5xl leading-tighest tracking-tight sm:text-6xl lg:text-8xl lg:tracking-tighter"
+            stagger={0.08}
+            amount={0.1}
+          >
+            Gestioná tu restaurante rápido.
+          </RevealHeading>
+          <Reveal delay={0.35} y={20}>
+            <p className="mt-4 max-w-lg text-lg leading-relaxed text-[var(--muted)] sm:text-xl">
+              Tus clientes escanean y acceden a tu menú también gestionás tus
+              pedidos y ventas.
+            </p>
+          </Reveal>
+          <Reveal delay={0.55} y={20} className="mt-7 w-full sm:mt-8">
+            <HeroWizard />
+          </Reveal>
         </div>
 
-        <HeroMockup />
+        <HeroImagePlaceholder />
       </div>
     </section>
   );
 }
 
-function HeroMockup() {
+function HeroImagePlaceholder() {
   return (
-    <div className="relative mx-auto w-full max-w-md">
+    <Reveal
+      delay={0.25}
+      y={50}
+      duration={1.1}
+      className="relative mx-auto hidden w-full max-w-sm items-center justify-center md:flex lg:max-w-md"
+    >
       <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-[var(--accent)]/30 via-transparent to-transparent blur-2xl" />
-      <div className="rounded-[2.5rem] border-[10px] border-[var(--foreground)] bg-[var(--surface)] p-3 shadow-2xl">
-        <div className="overflow-hidden rounded-[1.75rem] bg-[var(--background)]">
-          <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-[var(--accent)]" />
-              <div>
-                <p className="text-xs font-bold leading-tight">El Asador</p>
-                <p className="text-[10px] text-[var(--muted)]">Mesa 4</p>
-              </div>
-            </div>
-            <QrCode size={14} className="text-[var(--muted)]" />
-          </div>
-          <div className="space-y-3 p-4">
-            <MockProduct name="Lomito completo" price="45.000" qty={2} />
-            <MockProduct name="Empanada de carne" price="12.000" qty={3} />
-            <MockProduct name="Mojito sin alcohol" price="22.000" qty={1} />
-          </div>
-          <div className="border-t border-[var(--border)] bg-[var(--surface)] p-4">
-            <div className="mb-3 flex items-center justify-between text-sm">
-              <span className="font-medium">Total</span>
-              <span className="font-bold tabular-nums">Gs. 148.000</span>
-            </div>
-            <div className="flex items-center justify-center gap-2 rounded-xl bg-[var(--foreground)] px-4 py-3 text-sm font-semibold text-[var(--background)]">
-              Enviar pedido
-              <ArrowRight size={14} />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute -right-2 -top-2 rotate-6 rounded-2xl bg-[var(--accent)] px-3 py-2 text-xs font-bold text-[var(--accent-foreground)] shadow-lg sm:-right-6">
-        <div className="flex items-center gap-1">
-          <Bell size={12} />
-          ¡Pedido recibido!
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MockProduct({
-  name,
-  price,
-  qty,
-}: {
-  name: string;
-  price: string;
-  qty: number;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <div className="flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--accent)]/15 text-[10px] font-bold text-[var(--foreground)]">
-          {qty}×
-        </div>
-        <span className="font-medium">{name}</span>
-      </div>
-      <span className="tabular-nums text-[var(--muted)]">Gs. {price}</span>
-    </div>
+      <Image
+        src="/mobile.png"
+        alt="ScanRest en móvil"
+        width={400}
+        height={600}
+        className="h-auto w-full drop-shadow-2xl"
+        priority
+      />
+    </Reveal>
   );
 }
 
 function SocialProof() {
   return (
-    <section className="border-y border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-10">
-        <p className="text-xl font-semibold text-[var(--muted)]">
-          Eliminá la fricción de vender desde tu salón
+    <section className="px-4">
+      <Reveal className="mx-auto max-w-7xl rounded-3xl bg-[var(--surface)] px-6 py-10 sm:px-10">
+        <p className="text-center text-lg font-semibold text-[var(--muted)] sm:text-xl">
+          Eliminá la fricción en la atención
         </p>
-        <div className="grid w-full grid-cols-2 gap-4 text-center sm:grid-cols-4">
+        <StaggerGrid
+          className="mt-6 grid grid-cols-2 gap-4 text-center sm:grid-cols-4"
+          stagger={0.1}
+        >
           <Metric value="-40%" label="tiempo de espera" />
           <Metric value="+22%" label="ticket promedio" />
           <Metric value="<5min" label="setup inicial" />
           <Metric value="0%" label="comisión por pedido" />
-        </div>
-      </div>
+        </StaggerGrid>
+      </Reveal>
     </section>
   );
 }
@@ -267,17 +157,39 @@ function Metric({ value, label }: { value: string; label: string }) {
 function WhatItDoes() {
   return (
     <section className="px-4 py-20">
-      <div className="mx-auto max-w-3xl text-center">
-        <Chip variant="soft" color="accent" size="sm">
-          <span className="text-xs font-medium">¿Qué es ScanRest?</span>
-        </Chip>
-        <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-          Cargás tu menú, imprimís los QR y empezás a recibir pedidos.
-        </h2>
-        <p className="mt-5 text-lg text-[var(--muted)]">
-          Todo en un solo lugar: catálogo, modificadores, fotos, mesas, cocina y
-          reportes. Sin instalar nada. Sin firmar contratos.
-        </p>
+      <div className="mx-auto max-w-6xl text-center">
+        <RevealHeading
+          className="font-[family-name:var(--font-heading)] mt-4 text-4xl tracking-tight sm:text-6xl md:text-8xl"
+          stagger={0.05}
+        >
+          Cargás tu menú{" "}
+          <InlinePop delay={0.15}>
+            <Image
+              src="/burger2.png"
+              alt="Burger"
+              width={96}
+              height={96}
+              className="inline-block w-12 h-auto align-middle sm:w-16 md:w-20"
+            />
+          </InlinePop>{" "}
+          imprimís los QR y empezás a recibir pedidos{" "}
+          <InlinePop delay={0.55}>
+            <Image
+              src="/orders.png"
+              alt="Orders"
+              width={96}
+              height={96}
+              className="inline-block w-11 h-auto align-middle sm:w-16 md:w-20"
+            />
+          </InlinePop>
+          .
+        </RevealHeading>
+        <Reveal delay={0.3}>
+          <p className="mt-5 text-lg text-[var(--muted)] max-w-3xl mx-auto">
+            Todo en un solo lugar: catálogo, modificadores, fotos, mesas, cocina
+            y reportes. Sin instalar nada. Sin firmar contratos.
+          </p>
+        </Reveal>
       </div>
     </section>
   );
@@ -286,65 +198,69 @@ function WhatItDoes() {
 function Audience() {
   const profiles = [
     {
-      icon: Utensils,
+      icon: "/restaurante_salon.png",
       title: "Restaurantes con salón",
       desc: "QR por mesa. El mozo lleva la comida cuando está lista.",
     },
     {
-      icon: Building2,
+      icon: "/patio_comidas.png",
       title: "Patios de comida",
       desc: "Un QR general. El cliente retira en mostrador con su número.",
     },
     {
-      icon: Coffee,
-      title: "Cafeterías y bares",
-      desc: "Menú digital con fotos. Reduce filas en barra.",
-    },
-    {
-      icon: Truck,
+      icon: "/foodtruck.png",
       title: "Food trucks",
-      desc: "Menú accesible desde el teléfono. Mañana cambiás el menú en 1 minuto.",
+      desc: "Menú accesible desde el teléfono. Cambiás el menú en 1 minuto.",
     },
     {
-      icon: Wine,
+      icon: "/cervecerias.png",
       title: "Cervecerías y pubs",
       desc: "El cliente se sirve sin llamar al mozo en hora pico.",
     },
     {
-      icon: Heart,
-      title: "Restaurantes familiares",
-      desc: "Cero comisiones. Lo que vendés queda con vos.",
+      icon: "/cafeteria.png",
+      title: "Cafeterías",
+      desc: "Menú digital con fotos. Reduce filas en barra.",
     },
   ];
   return (
-    <section id="audience" className="bg-[var(--surface)] px-4 py-20">
+    <section id="audience" className="px-4 py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-xl text-center">
-          <Chip variant="soft" color="accent" size="sm">
-            <span className="text-xs font-medium">¿Para quién es?</span>
-          </Chip>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Hecho para cómo trabajás vos.
-          </h2>
-          <p className="mt-3 text-[var(--muted)]">
-            No importa el tamaño del local. Si vendés comida o bebida, ScanRest
-            te sirve.
-          </p>
+        <div className="mx-auto max-w-3xl text-center">
+          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-2xl tracking-tight sm:text-4xl md:text-6xl">
+            Hecho para todo tipo de locales.
+          </RevealHeading>
+          <Reveal delay={0.25}>
+            <p className="mt-3 text-[var(--muted)]">
+              Te transformamos en un restaurante digital
+            </p>
+          </Reveal>
         </div>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StaggerGrid
+          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          stagger={0.09}
+        >
           {profiles.map((p) => (
             <div
               key={p.title}
-              className="group rounded-2xl border border-[var(--border)] bg-[var(--background)] p-6 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]/50 hover:shadow-md"
+              className="group h-full rounded-3xl border border-[var(--border)] bg-[var(--background)] p-6 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]/50 hover:shadow-md"
             >
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--foreground)]">
-                <p.icon size={20} />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center">
+                <Image
+                  src={p.icon}
+                  alt={p.title}
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                />
               </div>
-              <h3 className="text-base font-bold">{p.title}</h3>
+              <h3 className="font-[family-name:var(--font-heading)] text-xl">
+                {p.title}
+              </h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{p.desc}</p>
             </div>
           ))}
-        </div>
+        </StaggerGrid>
       </div>
     </section>
   );
@@ -352,59 +268,52 @@ function Audience() {
 
 function CommercialBenefit() {
   return (
-    <section className="px-4 py-20">
-      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
-        <div>
-          <Chip variant="soft" color="success" size="sm">
-            <span className="text-xs font-medium">El dinero queda con vos</span>
-          </Chip>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Cero comisiones por pedido.
-          </h2>
-          <p className="mt-5 text-lg text-[var(--muted)]">
-            Otras plataformas se quedan con el 15-25% de lo que vendés.
-            ScanRest no. Pagás una mensualidad fija y lo que facturás es tuyo.
+    <section className="relative px-4 py-32 bg-slate-800 text-white">
+      <svg
+        className="absolute -top-px left-0 w-full h-6 sm:h-10"
+        viewBox="0 0 1440 40"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M0,40 L160,10 L320,30 L480,5 L640,25 L800,8 L960,28 L1120,12 L1280,30 L1440,15 L1440,0 L0,0 Z"
+          fill="var(--background)"
+        />
+      </svg>
+      <svg
+        className="absolute -bottom-px left-0 w-full h-6 sm:h-10"
+        viewBox="0 0 1440 40"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M0,0 L90,28 L240,6 L360,22 L540,4 L720,30 L860,14 L1050,2 L1200,26 L1340,10 L1440,32 L1440,40 L0,40 Z"
+          fill="var(--background)"
+        />
+      </svg>
+      <div className="mx-auto max-w-5xl text-center">
+        <RevealHeading
+          className="font-[family-name:var(--font-heading)] text-5xl leading-[1.1] tracking-tight sm:text-6xl lg:text-8xl lg:tracking-tighter"
+          stagger={0.08}
+        >
+          Cero comisiones por pedido.
+        </RevealHeading>
+        <Reveal delay={0.35}>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-white sm:text-xl">
+            Otras plataformas se quedan con el 15-25% de lo que vendés. Acá pagás
+            una tarifa fija y lo que facturás es tuyo.
           </p>
-          <ul className="mt-6 space-y-3 text-sm">
-            <BenefitLine text="Sin retención de pagos: cobrás directo en tu caja." />
-            <BenefitLine text="Sin sorpresas a fin de mes: tarifa fija." />
-            <BenefitLine text="Tus datos son tuyos. Exportás cuando quieras." />
-          </ul>
-          <div className="mt-7">
+        </Reveal>
+        <Reveal delay={0.5}>
+          <div className="mt-10">
             <Link href="/auth/register">
-              <Button variant="primary" size="lg">
+              <Button variant="primary" size="lg" className="px-7 py-7 rounded-full">
                 Quiero empezar
                 <ArrowRight size={16} />
               </Button>
             </Link>
           </div>
-        </div>
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
-          <p className="text-sm font-semibold text-[var(--muted)]">
-            Si vendés Gs. 30.000.000/mes
-          </p>
-          <div className="mt-4 space-y-3">
-            <ComparisonRow
-              label="Plataforma con 18% de comisión"
-              value="Gs. 5.400.000"
-              negative
-            />
-            <ComparisonRow
-              label="ScanRest Pro (tarifa fija)"
-              value="Gs. 150.000"
-              highlight
-            />
-          </div>
-          <div className="mt-6 rounded-2xl bg-[var(--accent)]/15 p-4 text-center">
-            <p className="text-xs uppercase tracking-wider text-[var(--muted)]">
-              Te quedás con
-            </p>
-            <p className="mt-1 text-3xl font-black text-[var(--foreground)]">
-              Gs. 5.250.000
-            </p>
-            <p className="text-xs text-[var(--muted)]">extra cada mes</p>
-          </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -454,196 +363,91 @@ function ComparisonRow({
 
 function HowItWorks() {
   const steps = [
-    {
-      icon: ChefHat,
-      title: "Cargás tu menú",
-      desc: "Productos, fotos, modificadores, categorías. Importás desde Excel si tenés la lista.",
-    },
-    {
-      icon: Printer,
-      title: "Imprimís los QR",
-      desc: "Uno por mesa o uno general en mostrador. Los generamos listos para imprimir.",
-    },
-    {
-      icon: Smartphone,
-      title: "El cliente escanea y pide",
-      desc: "Ve tu menú con fotos. Arma el pedido. Lo manda con un toque.",
-    },
-    {
-      icon: Bell,
-      title: "Recibís el pedido al instante",
-      desc: "Aparece en un Kanban en cocina. Arrastrás para cambiar estado.",
-    },
-    {
-      icon: Package,
-      title: "Marcás listo o entregado",
-      desc: "El cliente ve el cambio en vivo. Sin tener que ir a preguntar.",
-    },
-    {
-      icon: Zap,
-      title: "Analizás tus ventas",
-      desc: "Dashboard con productos top, ventas del día y ticket promedio.",
-    },
+    { title: "Cargás tu menú", desc: "Productos, fotos, modificadores. Importás desde Excel." },
+    { title: "Imprimís los QR", desc: "Uno por mesa o general. Listos para imprimir." },
+    { title: "El cliente escanea y pide", desc: "Ve tu menú con fotos. Manda el pedido en un toque." },
+    { title: "Recibís al instante", desc: "Aparece en el Kanban de cocina." },
+    { title: "Marcás listo o entregado", desc: "El cliente ve el cambio en vivo." },
+    { title: "Analizás tus ventas", desc: "Productos top, ventas del día, ticket promedio." },
   ];
   return (
-    <section id="how" className="bg-[var(--surface)] px-4 py-20">
-      <div className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-xl text-center">
-          <Chip variant="soft" color="accent" size="sm">
-            <span className="text-xs font-medium">Cómo funciona</span>
-          </Chip>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+    <section id="how" className=" px-4 py-24">
+      <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2 md:gap-16">
+        <div className="md:sticky md:top-32 md:self-start">
+          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
             Del primer pedido al cierre de caja.
-          </h2>
-          <p className="mt-3 text-[var(--muted)]">
-            Un recorrido pensado para que arranques hoy y crezcas mañana.
-          </p>
+          </RevealHeading>
+          <Reveal delay={0.3}>
+            <p className="mt-5 text-lg text-[var(--muted)]">
+              Un recorrido pensado para que arranques hoy y crezcas mañana.
+            </p>
+          </Reveal>
         </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <StaggerGrid className="block" stagger={0.1}>
           {steps.map((s, i) => (
             <div
               key={s.title}
-              className="relative rounded-2xl border border-[var(--border)] bg-[var(--background)] p-6"
+              className="grid grid-cols-[auto_1fr] gap-5 border-t border-[var(--border)] py-5 first:border-t-0 first:pt-0"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--foreground)] text-[var(--background)]">
-                  <s.icon size={18} />
-                </div>
-                <span className="text-3xl font-black text-[var(--border)]">
-                  0{i + 1}
-                </span>
+              <span className="font-[family-name:var(--font-heading)] text-2xl text-[var(--muted)] sm:text-3xl">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <h3 className="font-[family-name:var(--font-heading)] text-xl sm:text-2xl">
+                  {s.title}
+                </h3>
+                <p className="mt-1 text-base text-[var(--muted)]">{s.desc}</p>
               </div>
-              <h3 className="text-lg font-bold">{s.title}</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">{s.desc}</p>
             </div>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Differentiators() {
-  const items = [
-    {
-      icon: ShieldCheck,
-      title: "Sin comisiones",
-      desc: "Pagás una mensualidad y listo. Sin retenciones, sin sorpresas.",
-    },
-    {
-      icon: MessageCircle,
-      title: "Soporte en español",
-      desc: "WhatsApp directo con personas reales. Te respondemos en horario comercial.",
-    },
-    {
-      icon: Lock,
-      title: "Tus datos son tuyos",
-      desc: "Exportás clientes, ventas y reportes cuando quieras. Sin candados.",
-    },
-    {
-      icon: Users,
-      title: "Hecho para Paraguay",
-      desc: "Guaraníes, modificadores típicos, factura, WhatsApp. No es un copy-paste de otro mercado.",
-    },
-  ];
-  return (
-    <section id="why" className="px-4 py-20">
-      <div className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-xl text-center">
-          <Chip variant="soft" color="accent" size="sm">
-            <span className="text-xs font-medium">Por qué ScanRest</span>
-          </Chip>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            No somos otra plataforma más.
-          </h2>
-        </div>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((d) => (
-            <div
-              key={d.title}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
-            >
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)]">
-                <d.icon size={18} />
-              </div>
-              <h3 className="text-base font-bold">{d.title}</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">{d.desc}</p>
-            </div>
-          ))}
-        </div>
+        </StaggerGrid>
       </div>
     </section>
   );
 }
 
 function Testimonials() {
-  const quotes = [
-    {
-      quote:
-        "En la primera semana ya cargaba el menú yo solo desde el celular. No tuve que llamar a nadie.",
-      name: "Lucho M.",
-      role: "Dueño · El Asador",
-      tag: "Restaurante familiar",
-    },
-    {
-      quote:
-        "En hora pico no perdimos pedidos. Cocina los ve apilados, los va sacando uno por uno.",
-      name: "María R.",
-      role: "Gerente · Patio Yvera",
-      tag: "Food court",
-    },
-    {
-      quote:
-        "Lo que más me gustó: dejé de pagar 18% de comisión. Eso pasó a ser mi sueldo.",
-      name: "Carlos B.",
-      role: "Owner · Brewdog Asu",
-      tag: "Cervecería",
-    },
+  const restaurants = [
+    { slug: "el-asador", name: "El Asador", type: "Parrilla" },
+    { slug: "patio-yvera", name: "Patio Yvera", type: "Patio de comidas" },
   ];
   return (
-    <section className="bg-[var(--surface)] px-4 py-20">
+    <section className="px-4 py-24">
       <div className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-xl text-center">
-          <Chip variant="soft" color="accent" size="sm">
-            <span className="text-xs font-medium">Lo que dicen</span>
-          </Chip>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+        <div className="text-center">
+          <RevealHeading className="font-[family-name:var(--font-heading)] text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
             Restaurantes reales. Resultados reales.
-          </h2>
+          </RevealHeading>
         </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {quotes.map((q) => (
-            <div
-              key={q.name}
-              className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--background)] p-6"
+        <StaggerGrid className="mt-12 grid gap-6 md:grid-cols-2" stagger={0.15}>
+          {restaurants.map((r) => (
+            <Link
+              key={r.slug}
+              href={`/${r.slug}`}
+              className="group flex flex-col overflow-hidden rounded-3xl border border-[var(--border)] transition-all hover:-translate-y-1 hover:border-[var(--accent)]/50 hover:shadow-xl"
             >
-              <div className="mb-3 flex gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    className="fill-[var(--accent)] text-[var(--accent)]"
-                  />
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed text-[var(--foreground)]">
-                “{q.quote}”
-              </p>
-              <div className="mt-5 flex items-center gap-3 border-t border-[var(--border)] pt-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/20 text-sm font-bold">
-                  {q.name[0]}
+              <div className="relative flex aspect-[4/3] items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-[var(--muted)]">
+                  <Smartphone size={48} strokeWidth={1.5} />
+                  <span className="text-xs">Mockup próximamente</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold">{q.name}</p>
-                  <p className="text-xs text-[var(--muted)]">{q.role}</p>
-                </div>
-                <Chip size="sm" variant="soft" color="accent">
-                  <span className="text-[10px]">{q.tag}</span>
-                </Chip>
               </div>
-            </div>
+              <div className="p-6">
+                <p className="text-xs text-[var(--muted)]">
+                  scanrest.app/{r.slug}
+                </p>
+                <h3 className="font-[family-name:var(--font-heading)] mt-2 text-3xl">
+                  {r.name}
+                </h3>
+                <p className="mt-1 text-sm text-[var(--muted)]">{r.type}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--accent)] transition-all group-hover:gap-2">
+                  Ver menú
+                  <ArrowRight size={14} />
+                </span>
+              </div>
+            </Link>
           ))}
-        </div>
+        </StaggerGrid>
       </div>
     </section>
   );
@@ -651,30 +455,53 @@ function Testimonials() {
 
 function FinalCta() {
   return (
-    <section className="px-4 py-20">
-      <div className="mx-auto max-w-4xl rounded-3xl bg-gradient-to-br from-[var(--foreground)] to-[var(--surface-tertiary)] p-10 text-center text-white shadow-xl sm:p-14">
-        <Chip variant="soft" color="accent" size="sm">
-          <span className="text-xs font-medium">Vos cocinás. Nosotros llevamos los pedidos a tu pantalla.</span>
-        </Chip>
-        <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+    <section className="relative px-4 py-32 bg-slate-800 text-white mt-12">
+      <svg
+        className="absolute -top-px left-0 w-full h-6 sm:h-10"
+        viewBox="0 0 1440 40"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M0,40 L160,10 L320,30 L480,5 L640,25 L800,8 L960,28 L1120,12 L1280,30 L1440,15 L1440,0 L0,0 Z"
+          fill="var(--background)"
+        />
+      </svg>
+      <div className="mx-auto max-w-4xl text-center">
+        <RevealHeading
+          className="font-[family-name:var(--font-heading)] text-5xl leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl lg:tracking-tighter"
+          stagger={0.07}
+        >
           Empezá hoy. Sin tarjeta. Sin compromiso.
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-white/70">
-          Tu primer pedido por QR puede estar entrando esta misma tarde.
-        </p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/auth/register">
-            <Button variant="primary" size="lg" className="!bg-[var(--accent)] !text-[var(--accent-foreground)]">
-              Crear mi restaurante gratis
-              <ArrowRight size={16} />
-            </Button>
-          </Link>
-          <Link href="/auth/login">
-            <Button variant="ghost" size="lg" className="!text-white">
-              Ya tengo cuenta
-            </Button>
-          </Link>
-        </div>
+        </RevealHeading>
+        <Reveal delay={0.35}>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-white/80 sm:text-xl">
+            Tu primer pedido por QR puede estar entrando esta misma tarde.
+          </p>
+        </Reveal>
+        <Reveal delay={0.5}>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/auth/register">
+              <Button
+                variant="primary"
+                size="lg"
+                className="px-7 py-7 rounded-full"
+              >
+                Crear mi restaurante gratis
+                <ArrowRight size={16} />
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button
+                variant="ghost"
+                size="lg"
+                className="px-7 py-7 rounded-full !text-white"
+              >
+                Ya tengo cuenta
+              </Button>
+            </Link>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -682,28 +509,89 @@ function FinalCta() {
 
 function Footer() {
   return (
-    <footer className="mt-auto border-t border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/scanrest.svg"
-            alt="ScanRest"
-            width={2051}
-            height={437}
-            className="h-6 w-auto"
-          />
-          <span className="text-xs">© {new Date().getFullYear()} ScanRest · Hecho en Paraguay</span>
+    <footer className="bg-slate-800 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-16">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          <div>
+            <Image
+              src="/scanrest.svg"
+              alt="ScanRest"
+              width={2051}
+              height={437}
+              className="h-8 w-auto brightness-0 invert"
+            />
+            <p className="mt-4 max-w-xs text-sm text-white/70">
+              Pedidos por QR. Cocina conectada. Sin comisiones por pedido.
+            </p>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-heading)] text-lg">
+              Producto
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-white/70">
+              <li>
+                <a href="#how" className="hover:text-white">
+                  Cómo funciona
+                </a>
+              </li>
+              <li>
+                <a href="#audience" className="hover:text-white">
+                  Para quién es
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-heading)] text-lg">
+              Cuenta
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-white/70">
+              <li>
+                <Link href="/auth/login" className="hover:text-white">
+                  Ingresar
+                </Link>
+              </li>
+              <li>
+                <Link href="/auth/register" className="hover:text-white">
+                  Registrarse
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-[family-name:var(--font-heading)] text-lg">
+              Contacto
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-white/70">
+              <li>
+                <a
+                  href="mailto:hola@scanrest.app"
+                  className="hover:text-white"
+                >
+                  hola@scanrest.app
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/595000000000"
+                  className="hover:text-white"
+                >
+                  WhatsApp
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div className="flex gap-5 text-xs">
-          <Link href="/auth/login" className="hover:text-[var(--foreground)]">
-            Ingresar
-          </Link>
-          <Link href="/auth/register" className="hover:text-[var(--foreground)]">
-            Registrarse
-          </Link>
-          <a href="#how" className="hover:text-[var(--foreground)]">
-            Cómo funciona
-          </a>
+        <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} ScanRest · Hecho en Paraguay</span>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-white">
+              Términos
+            </a>
+            <a href="#" className="hover:text-white">
+              Privacidad
+            </a>
+          </div>
         </div>
       </div>
     </footer>
