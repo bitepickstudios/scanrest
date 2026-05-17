@@ -1,21 +1,21 @@
 import TablesManager from "@/components/admin/TablesManager";
-import { getRestaurantBySlug } from "@/lib/current-restaurant";
+import { getRestaurantWithBranch } from "@/lib/current-restaurant";
 
 export default async function TablesPage({
   params,
 }: {
-  params: Promise<{ restaurantSlug: string }>;
+  params: Promise<{ restaurantSlug: string; branchSlug: string }>;
 }) {
-  const { restaurantSlug } = await params;
-  const { supabase, restaurant } = await getRestaurantBySlug(
+  const { restaurantSlug, branchSlug } = await params;
+  const { supabase, restaurant, branch } = await getRestaurantWithBranch(
     restaurantSlug,
-    "id, slug, mode"
+    branchSlug
   );
 
   const { data: tables } = await supabase
     .from("tables")
     .select("*")
-    .eq("restaurant_id", restaurant.id)
+    .eq("branch_id", branch.id)
     .order("number", { ascending: true });
 
   return (
@@ -25,6 +25,7 @@ export default async function TablesPage({
           {restaurant.mode === "table" ? "Mesas y QRs" : "QR del local"}
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
+          {branch.name} ·{" "}
           {restaurant.mode === "table"
             ? "Generá y descargá los QRs para pegar en cada mesa."
             : "Un solo QR para que los clientes hagan su pedido y retiren en el mostrador."}
@@ -34,6 +35,7 @@ export default async function TablesPage({
         <TablesManager
           tables={tables ?? []}
           restaurantSlug={restaurant.slug}
+          branchSlug={branch.slug}
           mode={restaurant.mode as "table" | "foodcourt"}
         />
       </div>

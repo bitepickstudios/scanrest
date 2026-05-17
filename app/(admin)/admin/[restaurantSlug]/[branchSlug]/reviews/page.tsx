@@ -1,21 +1,21 @@
 import { Star } from "lucide-react";
-import { getRestaurantBySlug } from "@/lib/current-restaurant";
+import { getRestaurantWithBranch } from "@/lib/current-restaurant";
 
 export default async function ReviewsPage({
   params,
 }: {
-  params: Promise<{ restaurantSlug: string }>;
+  params: Promise<{ restaurantSlug: string; branchSlug: string }>;
 }) {
-  const { restaurantSlug } = await params;
-  const { supabase, restaurant } = await getRestaurantBySlug(
+  const { restaurantSlug, branchSlug } = await params;
+  const { supabase, branch } = await getRestaurantWithBranch(
     restaurantSlug,
-    "id"
+    branchSlug
   );
 
   const { data: reviews } = await supabase
     .from("reviews")
     .select("*")
-    .eq("restaurant_id", restaurant.id)
+    .eq("branch_id", branch.id)
     .order("created_at", { ascending: false });
 
   const list = reviews ?? [];

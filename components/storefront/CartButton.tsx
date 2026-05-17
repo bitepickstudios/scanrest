@@ -12,12 +12,14 @@ type ProductFull = Product & {
 
 export default function CartButton({
   restaurantSlug,
+  branchSlug,
   tableId,
   mode,
   table,
   allProducts,
 }: {
   restaurantSlug: string;
+  branchSlug?: string;
   tableId: string | null;
   mode: string;
   table: { number: number; label: string | null } | null;
@@ -50,6 +52,7 @@ export default function CartButton({
       {open && (
         <CartSheet
           restaurantSlug={restaurantSlug}
+          branchSlug={branchSlug}
           tableId={tableId}
           mode={mode}
           table={table}

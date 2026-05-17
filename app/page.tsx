@@ -64,7 +64,7 @@ function Hero() {
             stagger={0.08}
             amount={0.1}
           >
-            Gestioná tu restaurante rápido.
+            Tomá pedidos facilmente
           </RevealHeading>
           <Reveal delay={0.35} y={20}>
             <p className="mt-4 max-w-lg text-lg leading-relaxed text-[var(--muted)] sm:text-xl">
@@ -306,7 +306,7 @@ function CommercialBenefit() {
         </Reveal>
         <Reveal delay={0.5}>
           <div className="mt-10">
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <Button variant="primary" size="lg" className="px-7 py-7 rounded-full">
                 Quiero empezar
                 <ArrowRight size={16} />
@@ -481,7 +481,7 @@ function FinalCta() {
         </Reveal>
         <Reveal delay={0.5}>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <Button
                 variant="primary"
                 size="lg"
@@ -489,15 +489,6 @@ function FinalCta() {
               >
                 Crear mi restaurante gratis
                 <ArrowRight size={16} />
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button
-                variant="ghost"
-                size="lg"
-                className="px-7 py-7 rounded-full !text-white"
-              >
-                Ya tengo cuenta
               </Button>
             </Link>
           </div>

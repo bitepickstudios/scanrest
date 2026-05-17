@@ -18,6 +18,7 @@ type ProductFull = Product & {
 
 export default function CartSheet({
   restaurantSlug,
+  branchSlug,
   tableId,
   mode,
   table,
@@ -25,6 +26,7 @@ export default function CartSheet({
   onClose,
 }: {
   restaurantSlug: string;
+  branchSlug?: string;
   tableId: string | null;
   mode: string;
   table: { number: number; label: string | null } | null;
@@ -106,10 +108,41 @@ export default function CartSheet({
       return;
     }
 
+    let resolvedBranchId: string | null = null;
+    let resolvedBranchSlug: string | null = branchSlug ?? null;
+    if (branchSlug) {
+      const { data: branch } = await supabase
+        .from("branches")
+        .select("id, slug")
+        .eq("restaurant_id", restaurant.id)
+        .eq("slug", branchSlug)
+        .single();
+      resolvedBranchId = branch?.id ?? null;
+    } else {
+      const { data: branch } = await supabase
+        .from("branches")
+        .select("id, slug")
+        .eq("restaurant_id", restaurant.id)
+        .eq("active", true)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+      resolvedBranchId = branch?.id ?? null;
+      resolvedBranchSlug = branch?.slug ?? null;
+    }
+
+    if (!resolvedBranchId) {
+      setError("No se encontró la sucursal.");
+      setLoading(false);
+      return;
+    }
+
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         restaurant_id: restaurant.id,
+        branch_id: resolvedBranchId,
         table_id: tableId ?? null,
         customer_name: name.trim(),
         customer_phone: phone.trim(),
@@ -160,7 +193,8 @@ export default function CartSheet({
 
     clear();
     setActiveOrder(restaurantSlug, order.id);
-    router.push(`/${restaurantSlug}/order/${order.id}`);
+    const branchPath = resolvedBranchSlug ?? "";
+    router.push(`/${restaurantSlug}/${branchPath}/order/${order.id}`);
   }
 
   return (

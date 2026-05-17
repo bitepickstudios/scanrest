@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar, Card } from "@heroui/react";
-import { ChevronRight, Store } from "lucide-react";
+import { ChevronRight, Plus, Store } from "lucide-react";
 import { listOwnedRestaurants } from "@/lib/current-restaurant";
 
 async function selectAction(formData: FormData) {
@@ -63,6 +64,28 @@ export default async function SelectRestaurantPage() {
               </button>
             </form>
           ))}
+
+          <Link href="/auth/onboarding" className="block">
+            <Card
+              variant="default"
+              className="border-dashed transition-all hover:border-neutral-400 hover:shadow-md"
+            >
+              <Card.Content className="!flex !flex-row items-center gap-3 !p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+                  <Plus size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-neutral-900">
+                    Crear otro restaurante
+                  </p>
+                  <p className="truncate text-xs text-neutral-500">
+                    Nueva marca, menú y QRs propios
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-neutral-400" />
+              </Card.Content>
+            </Card>
+          </Link>
         </div>
 
       </div>

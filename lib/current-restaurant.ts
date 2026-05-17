@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const CURRENT_RESTAURANT_COOKIE = "current_restaurant_id";
+export const CURRENT_BRANCH_COOKIE = "current_branch_id";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -28,8 +29,6 @@ export async function listOwnedRestaurants() {
   return { user, restaurants: data ?? [] };
 }
 
-// URL-driven: read slug from route params. Validates ownership + syncs cookie
-// so server actions invoked from this page hit the right restaurant.
 export async function getRestaurantBySlug<S extends string = "*">(
   slug: string,
   select: S = "*" as S
@@ -52,8 +51,6 @@ export async function getRestaurantBySlug<S extends string = "*">(
   return { supabase, user, restaurant: restaurant as any };
 }
 
-// Cookie-driven: used by server actions where URL params aren't available.
-// Cookie is kept fresh by getRestaurantBySlug on every page render.
 export async function getCurrentRestaurant<S extends string = "*">(
   select: S = "*" as S
 ) {
@@ -77,4 +74,85 @@ export async function getCurrentRestaurant<S extends string = "*">(
   if (!restaurant) redirect("/auth/select-restaurant");
 
   return { supabase, user, restaurant: restaurant as any };
+}
+
+export async function listBranchesForRestaurant(restaurantId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("branches")
+    .select("id, slug, name, is_default, active, type, address")
+    .eq("restaurant_id", restaurantId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}
+
+export async function getRestaurantWithBranch(
+  restaurantSlug: string,
+  branchSlug: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("*")
+    .eq("slug", restaurantSlug)
+    .eq("owner_id", user.id)
+    .single();
+
+  if (!restaurant) redirect("/auth/select-restaurant");
+
+  const { data: branch } = await supabase
+    .from("branches")
+    .select("*")
+    .eq("restaurant_id", restaurant.id)
+    .eq("slug", branchSlug)
+    .single();
+
+  if (!branch) redirect(`/admin/${restaurant.slug}`);
+
+  return { supabase, user, restaurant, branch };
+}
+
+export async function getDefaultBranch(restaurantId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("branches")
+    .select("id, slug, name")
+    .eq("restaurant_id", restaurantId)
+    .eq("active", true)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single();
+  return data;
+}
+
+export async function getCurrentStaffRole(restaurantId: string, branchId?: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("owner_id")
+    .eq("id", restaurantId)
+    .single();
+  if (restaurant?.owner_id === user.id) return "superadmin" as const;
+
+  let q = supabase
+    .from("staff")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("restaurant_id", restaurantId)
+    .eq("active", true);
+  if (branchId) q = q.eq("branch_id", branchId);
+  const { data } = await q.maybeSingle();
+  return (data?.role ?? null) as "superadmin" | "admin" | "waiter" | null;
 }

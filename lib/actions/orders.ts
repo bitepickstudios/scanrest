@@ -14,5 +14,5 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
     .eq("restaurant_id", restaurant.id);
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/admin/${restaurant.slug}/orders`);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
 }

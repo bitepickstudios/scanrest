@@ -1,8 +1,9 @@
-import Link from "next/link";
-import { Store, UtensilsCrossed, Table2, ClipboardList } from "lucide-react";
-import { Card } from "@heroui/react";
-import DashboardQuickActions from "@/components/admin/DashboardQuickActions";
-import { getRestaurantBySlug } from "@/lib/current-restaurant";
+import { redirect } from "next/navigation";
+import {
+  getRestaurantBySlug,
+  getDefaultBranch,
+  listBranchesForRestaurant,
+} from "@/lib/current-restaurant";
 
 export default async function AdminHomePage({
   params,
@@ -10,64 +11,19 @@ export default async function AdminHomePage({
   params: Promise<{ restaurantSlug: string }>;
 }) {
   const { restaurantSlug } = await params;
-  const { supabase, restaurant } = await getRestaurantBySlug(
+  const { restaurant } = await getRestaurantBySlug(
     restaurantSlug,
-    "id, name, mode, slug"
+    "id, slug"
   );
 
-  const [{ count: productCount }, { count: tableCount }, { count: orderCount }] =
-    await Promise.all([
-      supabase.from("products").select("*", { count: "exact", head: true }).eq("restaurant_id", restaurant.id),
-      supabase.from("tables").select("*", { count: "exact", head: true }).eq("restaurant_id", restaurant.id),
-      supabase.from("orders").select("*", { count: "exact", head: true }).eq("restaurant_id", restaurant.id),
-    ]);
+  const branches = await listBranchesForRestaurant(restaurant.id);
+  const active = branches.filter((b) => b.active);
 
-  const base = `/admin/${restaurant.slug}`;
-  const cards = [
-    { label: "Productos", value: productCount ?? 0, icon: UtensilsCrossed, href: `${base}/menu` },
-    { label: "Mesas", value: tableCount ?? 0, icon: Table2, href: `${base}/tables` },
-    { label: "Pedidos totales", value: orderCount ?? 0, icon: ClipboardList, href: `${base}/orders` },
-  ];
+  if (active.length === 0) {
+    redirect(`/admin/${restaurant.slug}/sucursales`);
+  }
 
-  return (
-    <div className="p-8">
-      <h1 className="text-xl font-semibold text-neutral-800">
-        Bienvenido, {restaurant.name}
-      </h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        Panel de administración · Modo:{" "}
-        {restaurant.mode === "table" ? "Restaurante con mesas" : "Food court"}
-      </p>
-
-      <div className="mt-8 grid grid-cols-3 gap-4">
-        {cards.map(({ label, value, icon: Icon, href }) => (
-          <Link key={label} href={href} className="group">
-            <Card variant="default" className="transition-shadow group-hover:shadow-md">
-              <Card.Header>
-                <div className="flex items-center gap-2 text-neutral-400">
-                  <Icon size={16} />
-                  <Card.Title className="text-xs font-medium uppercase tracking-wider">{label}</Card.Title>
-                </div>
-              </Card.Header>
-              <Card.Content>
-                <p className="text-3xl font-bold text-neutral-800">{value}</p>
-              </Card.Content>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      <Card variant="default" className="mt-8">
-        <Card.Header>
-          <div className="flex items-center gap-2 text-neutral-400">
-            <Store size={16} />
-            <Card.Title className="text-xs font-medium uppercase tracking-wider">Accesos rápidos</Card.Title>
-          </div>
-        </Card.Header>
-        <Card.Content>
-          <DashboardQuickActions slug={restaurant.slug} />
-        </Card.Content>
-      </Card>
-    </div>
-  );
+  const def = await getDefaultBranch(restaurant.id);
+  const target = def ?? active[0];
+  redirect(`/admin/${restaurant.slug}/${target.slug}`);
 }

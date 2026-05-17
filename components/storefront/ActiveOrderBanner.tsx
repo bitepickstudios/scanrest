@@ -14,7 +14,13 @@ const STATUS_META: Record<string, { label: string; icon: typeof Bell }> = {
   delivered: { label: "Entregado", icon: PartyPopper },
 };
 
-export default function ActiveOrderBanner({ slug }: { slug: string }) {
+export default function ActiveOrderBanner({
+  slug,
+  branchSlug,
+}: {
+  slug: string;
+  branchSlug?: string;
+}) {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -94,7 +100,10 @@ export default function ActiveOrderBanner({ slug }: { slug: string }) {
         hasCart ? "bottom-24" : "bottom-6"
       }`}
     >
-      <Link href={`/${slug}/order/${orderId}`} className="block">
+      <Link
+        href={branchSlug ? `/${slug}/${branchSlug}/order/${orderId}` : `/${slug}`}
+        className="block"
+      >
         <div className="flex items-center gap-3 rounded-2xl bg-[var(--foreground)] px-4 py-3 shadow-xl border border-[var(--border)] active:scale-[0.98] transition-transform animate-slide-up">
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)]">
             <span className="absolute inset-0 rounded-xl bg-[var(--accent)] opacity-50 animate-ping" />

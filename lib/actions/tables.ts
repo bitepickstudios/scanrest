@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentRestaurant } from "@/lib/current-restaurant";
+import { getCurrentRestaurant, getDefaultBranch } from "@/lib/current-restaurant";
 
 async function getRestaurant() {
   const { supabase, restaurant } = await getCurrentRestaurant(
@@ -10,13 +10,20 @@ async function getRestaurant() {
   return { supabase, restaurant: restaurant as { id: string; slug: string; mode: string } };
 }
 
-export async function createTables(count: number) {
+export async function createTables(count: number, branchId?: string) {
   const { supabase, restaurant } = await getRestaurant();
+
+  let targetBranchId = branchId;
+  if (!targetBranchId) {
+    const def = await getDefaultBranch(restaurant.id);
+    if (!def) throw new Error("No hay sucursal disponible.");
+    targetBranchId = def.id;
+  }
 
   const { data: existing } = await supabase
     .from("tables")
     .select("number")
-    .eq("restaurant_id", restaurant.id)
+    .eq("branch_id", targetBranchId)
     .order("number", { ascending: false })
     .limit(1);
 
@@ -24,13 +31,14 @@ export async function createTables(count: number) {
 
   const rows = Array.from({ length: count }, (_, i) => ({
     restaurant_id: restaurant.id,
+    branch_id: targetBranchId!,
     number: startNumber + i,
     label: `Mesa ${startNumber + i}`,
   }));
 
   const { error } = await supabase.from("tables").insert(rows);
   if (error) throw new Error(error.message);
-  revalidatePath(`/admin/${restaurant.slug}/tables`);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
 }
 
 export async function deleteTable(id: string) {
@@ -41,7 +49,7 @@ export async function deleteTable(id: string) {
     .eq("id", id)
     .eq("restaurant_id", restaurant.id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/admin/${restaurant.slug}/tables`);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
 }
 
 export async function toggleTableActive(id: string, active: boolean) {
@@ -52,5 +60,5 @@ export async function toggleTableActive(id: string, active: boolean) {
     .eq("id", id)
     .eq("restaurant_id", restaurant.id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/admin/${restaurant.slug}/tables`);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
 }

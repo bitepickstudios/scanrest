@@ -12,6 +12,7 @@ import {
   Star,
   LogOut,
   ArrowLeftRight,
+  MapPin,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
@@ -20,21 +21,31 @@ import { Button } from "@heroui/react";
 export default function Sidebar({
   restaurant,
   ownedCount,
+  defaultBranchSlug,
 }: {
   restaurant: Pick<Restaurant, "name" | "slug">;
   ownedCount: number;
+  defaultBranchSlug?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const base = `/admin/${restaurant.slug}`;
+  const restBase = `/admin/${restaurant.slug}`;
+  const pathSegments = pathname.split("/").filter(Boolean);
+  const currentBranchSlug =
+    pathSegments[0] === "admin" && pathSegments[1] === restaurant.slug
+      ? pathSegments[2]
+      : undefined;
+  const branchSlug = currentBranchSlug ?? defaultBranchSlug;
+  const branchBase = branchSlug ? `${restBase}/${branchSlug}` : restBase;
 
   const navItems = [
-    { href: base, label: "Inicio", icon: LayoutDashboard, exact: true },
-    { href: `${base}/profile`, label: "Perfil", icon: Store },
-    { href: `${base}/menu`, label: "Menú", icon: UtensilsCrossed },
-    { href: `${base}/tables`, label: "Mesas", icon: Table2 },
-    { href: `${base}/orders`, label: "Pedidos", icon: ClipboardList },
-    { href: `${base}/reviews`, label: "Reseñas", icon: Star },
+    { href: branchBase, label: "Inicio", icon: LayoutDashboard, exact: true },
+    { href: `${restBase}/profile`, label: "Perfil", icon: Store },
+    { href: `${restBase}/sucursales`, label: "Sucursales", icon: MapPin },
+    { href: `${restBase}/menu`, label: "Menú", icon: UtensilsCrossed },
+    { href: `${branchBase}/tables`, label: "Mesas", icon: Table2 },
+    { href: `${branchBase}/orders`, label: "Pedidos", icon: ClipboardList },
+    { href: `${branchBase}/reviews`, label: "Reseñas", icon: Star },
   ];
 
   async function handleLogout() {

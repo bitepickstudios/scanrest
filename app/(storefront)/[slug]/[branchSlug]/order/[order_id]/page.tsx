@@ -5,7 +5,7 @@ import OrderTracker from "@/components/storefront/OrderTracker";
 export default async function OrderStatusPage({
   params,
 }: {
-  params: Promise<{ slug: string; order_id: string }>;
+  params: Promise<{ slug: string; branchSlug: string; order_id: string }>;
 }) {
   const { slug, order_id } = await params;
 

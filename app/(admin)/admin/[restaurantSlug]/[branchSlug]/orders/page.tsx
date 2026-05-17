@@ -1,28 +1,28 @@
 import KanbanBoard from "@/components/admin/KanbanBoard";
-import { getRestaurantBySlug } from "@/lib/current-restaurant";
+import { getRestaurantWithBranch } from "@/lib/current-restaurant";
 
 export default async function OrdersPage({
   params,
 }: {
-  params: Promise<{ restaurantSlug: string }>;
+  params: Promise<{ restaurantSlug: string; branchSlug: string }>;
 }) {
-  const { restaurantSlug } = await params;
-  const { supabase, restaurant } = await getRestaurantBySlug(
+  const { restaurantSlug, branchSlug } = await params;
+  const { supabase, restaurant, branch } = await getRestaurantWithBranch(
     restaurantSlug,
-    "id, mode"
+    branchSlug
   );
 
   const { data: orders } = await supabase
     .from("orders")
     .select(`*, order_items(*, order_item_modifiers(*)), tables(number, label)`)
-    .eq("restaurant_id", restaurant.id)
+    .eq("branch_id", branch.id)
     .neq("status", "delivered")
     .order("created_at", { ascending: true });
 
   const { data: delivered } = await supabase
     .from("orders")
     .select(`*, order_items(*, order_item_modifiers(*)), tables(number, label)`)
-    .eq("restaurant_id", restaurant.id)
+    .eq("branch_id", branch.id)
     .eq("status", "delivered")
     .order("updated_at", { ascending: false })
     .limit(20);
@@ -32,7 +32,7 @@ export default async function OrdersPage({
       <div className="border-b border-neutral-200 bg-white px-8 py-5">
         <h1 className="text-xl font-semibold text-neutral-800">Pedidos</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Arrastrá las tarjetas para actualizar el estado.
+          {branch.name} · Arrastrá las tarjetas para actualizar el estado.
         </p>
       </div>
       <div className="flex-1 overflow-hidden">

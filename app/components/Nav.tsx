@@ -56,7 +56,7 @@ export default function Nav() {
               Ingresar
             </Button>
           </Link>
-          <Link href="/auth/register">
+          <Link href="/auth/login">
             <Button variant="primary" size="sm" className="px-6 py-6">
               Empezar gratis
               <ArrowRight size={14} />

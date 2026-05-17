@@ -22,7 +22,7 @@ export default function HeroWizard() {
 
   function go() {
     if (!slug) return setError("Ingresá el nombre de tu restaurante.");
-    router.push(`/auth/register?slug=${encodeURIComponent(slug)}`);
+    router.push(`/auth/login?slug=${encodeURIComponent(slug)}`);
   }
 
   return (

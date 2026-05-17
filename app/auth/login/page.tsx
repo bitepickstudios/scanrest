@@ -28,7 +28,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/auth/select-restaurant");
+    router.push("/auth/post-login");
     router.refresh();
   }
 
@@ -36,7 +36,7 @@ export default function LoginPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}/auth/select-restaurant` },
+      options: { redirectTo: `${location.origin}/auth/post-login` },
     });
   }
 
@@ -44,7 +44,7 @@ export default function LoginPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "apple",
-      options: { redirectTo: `${location.origin}/auth/select-restaurant` },
+      options: { redirectTo: `${location.origin}/auth/post-login` },
     });
   }
 

@@ -11,10 +11,12 @@ import type { Table } from "@/lib/types";
 export default function TablesManager({
   tables: initial,
   restaurantSlug,
+  branchSlug,
   mode,
 }: {
   tables: Table[];
   restaurantSlug: string;
+  branchSlug?: string;
   mode: "table" | "foodcourt";
 }) {
   const [count, setCount] = useState(1);
@@ -24,12 +26,13 @@ export default function TablesManager({
       ? window.location.origin
       : process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(".supabase.co", "") ?? "";
 
+  const branchPath = branchSlug ? `/${branchSlug}` : "";
   function getQrUrl(table: Table) {
-    return `${window.location.origin}/${restaurantSlug}?table=${table.id}`;
+    return `${window.location.origin}/${restaurantSlug}${branchPath}?table=${table.id}`;
   }
 
   function getFoodcourtQrUrl() {
-    return `${window.location.origin}/${restaurantSlug}`;
+    return `${window.location.origin}/${restaurantSlug}${branchPath}`;
   }
 
   async function downloadQR(url: string, filename: string) {
