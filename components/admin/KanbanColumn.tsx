@@ -26,7 +26,7 @@ export default function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div className="flex w-72 shrink-0 flex-col">
+    <div className="flex h-full min-h-0 w-72 shrink-0 flex-col">
       {/* Column header */}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-neutral-700">{label}</h3>
@@ -38,9 +38,9 @@ export default function KanbanColumn({
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className={`flex flex-1 flex-col gap-3 rounded-2xl border-2 p-3 transition-colors ${colorClass} ${
+        className={`flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto rounded-2xl border-2 p-3 transition-colors ${colorClass} ${
           isOver ? "brightness-95" : ""
-        } min-h-[200px]`}
+        }`}
       >
         {orders.map((order) => (
           <OrderCard

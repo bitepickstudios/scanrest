@@ -1,4 +1,6 @@
 import Sidebar from "@/components/admin/Sidebar";
+import OrdersRealtimeNotifier from "@/components/admin/OrdersRealtimeNotifier";
+import { Toaster } from "sileo";
 import {
   getRestaurantBySlug,
   listOwnedRestaurants,
@@ -24,6 +26,12 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <Toaster position="top-right" theme="light" />
+      <OrdersRealtimeNotifier
+        restaurantId={restaurant.id}
+        restaurantSlug={restaurant.slug}
+        defaultBranchSlug={defaultBranch?.slug}
+      />
       <Sidebar
         restaurant={restaurant}
         ownedCount={restaurants.length}

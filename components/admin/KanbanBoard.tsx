@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   DndContext,
@@ -12,7 +12,8 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@heroui/react";
+import { Button, SearchField } from "@heroui/react";
+import SelectField from "@/components/ui/SelectField";
 import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "@/lib/actions/orders";
 import KanbanColumn from "./KanbanColumn";
@@ -29,6 +30,7 @@ const COLUMNS: { id: OrderStatus; label: string; color: string }[] = [
   { id: "preparing", label: "Preparando", color: "bg-amber-50 border-amber-200" },
   { id: "ready", label: "Listos", color: "bg-green-50 border-green-200" },
   { id: "delivered", label: "Entregados", color: "bg-neutral-50 border-neutral-200" },
+  { id: "cancelled", label: "Cancelados", color: "bg-rose-50 border-rose-200" },
 ];
 
 export default function KanbanBoard({
@@ -45,6 +47,34 @@ export default function KanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderFull | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [dateRange, setDateRange] = useState("today");
+  const [search, setSearch] = useState("");
+
+  const filteredOrders = useMemo(() => {
+    const now = Date.now();
+    const ranges: Record<string, number | null> = {
+      today: 1,
+      "7d": 7,
+      "30d": 30,
+      all: null,
+    };
+    const days = ranges[dateRange];
+    const cutoff =
+      days === null
+        ? 0
+        : days === 1
+        ? new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+        : now - days * 86400000;
+    const q = search.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (new Date(o.created_at).getTime() < cutoff) return false;
+      if (!q) return true;
+      const num = String(o.order_number);
+      const name = (o.customer_name ?? "").toLowerCase();
+      const tableLabel = (o.tables?.label ?? "").toLowerCase();
+      return num.includes(q) || name.includes(q) || tableLabel.includes(q);
+    });
+  }, [orders, dateRange, search]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -102,8 +132,35 @@ export default function KanbanBoard({
 
   return (
     <>
-      <div className="flex h-full flex-col">
-        <div className="flex items-center justify-end border-b border-neutral-100 bg-white px-6 py-2">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-100 bg-white px-6 py-2.5">
+          <div className="w-64">
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              aria-label="Buscar pedidos"
+              fullWidth
+            >
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Buscar por #, cliente, mesa..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
+          </div>
+          <div className="w-36">
+            <SelectField
+              value={dateRange}
+              onChange={setDateRange}
+              options={[
+                { value: "today", label: "Hoy" },
+                { value: "7d", label: "Últimos 7 días" },
+                { value: "30d", label: "Últimos 30 días" },
+                { value: "all", label: "Todo" },
+              ]}
+            />
+          </div>
+          <div className="ml-auto" />
           <Button variant="ghost" size="sm" onPress={() => router.refresh()} isDisabled={isPending}>
             <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
             Actualizar
@@ -111,14 +168,14 @@ export default function KanbanBoard({
         </div>
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex flex-1 gap-4 overflow-x-auto p-6">
+          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto p-6">
             {COLUMNS.map((col) => (
               <KanbanColumn
                 key={col.id}
                 id={col.id}
                 label={col.label}
                 colorClass={col.color}
-                orders={orders.filter((o) => o.status === col.id)}
+                orders={filteredOrders.filter((o) => o.status === col.id)}
                 mode={mode}
                 onSelectOrder={setSelectedOrder}
               />

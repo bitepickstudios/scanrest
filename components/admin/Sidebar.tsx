@@ -121,7 +121,7 @@ export default function Sidebar({
       <nav className="flex-1 space-y-0.5 px-2 py-3">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
-          const showBadge = label === "Mesas" && newOrderCount > 0;
+          const showBadge = label === "Pedidos" && newOrderCount > 0;
           return (
             <Link
               key={label}

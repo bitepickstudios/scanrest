@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChefHat, Bell, PartyPopper, ArrowLeft, Plus, Table2 } from "lucide-react";
-import { Avatar, Button } from "@heroui/react";
+import { CheckCircle2, ChefHat, Bell, PartyPopper, ArrowLeft, Plus, Table2, Ban } from "lucide-react";
+import { Avatar, Button, Modal } from "@heroui/react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { clearActiveOrder } from "@/lib/active-order";
 import ReviewForm from "./ReviewForm";
@@ -48,7 +49,11 @@ export default function OrderTracker({
   orderId: string;
   slug: string;
 }) {
+  const router = useRouter();
   const [order, setOrder] = useState(initialOrder);
+  const [cancelledModalOpen, setCancelledModalOpen] = useState(
+    initialOrder.status === "cancelled"
+  );
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,6 +70,8 @@ export default function OrderTracker({
       setOrder((prev) => (prev.status === next ? prev : { ...prev, status: next }));
     }
 
+    refetch();
+
     const channel = supabase
       .channel(`order-${orderId}`)
       .on(
@@ -73,18 +80,17 @@ export default function OrderTracker({
           event: "UPDATE",
           schema: "public",
           table: "orders",
-          filter: `id=eq.${orderId}`,
         },
         (payload) => {
-          const raw = (payload.new as { status?: string }).status;
-          if (!raw) return;
-          const next = raw as OrderStatus;
+          const row = payload.new as { id?: string; status?: string };
+          if (row.id !== orderId || !row.status) return;
+          const next = row.status as OrderStatus;
           setOrder((prev) => (prev.status === next ? prev : { ...prev, status: next }));
         }
       )
       .subscribe();
 
-    const interval = setInterval(refetch, 60000);
+    const interval = setInterval(refetch, 5000);
 
     return () => {
       cancelled = true;
@@ -94,10 +100,13 @@ export default function OrderTracker({
   }, [orderId]);
 
   useEffect(() => {
-    if (order.status === "delivered") {
-      clearActiveOrder(slug);
+    if (order.status === "delivered" || order.status === "cancelled") {
+      clearActiveOrder(slug, orderId);
     }
-  }, [order.status, slug]);
+    if (order.status === "cancelled") {
+      setCancelledModalOpen(true);
+    }
+  }, [order.status, slug, orderId]);
 
   const currentIdx = statusIndex[order.status] ?? 0;
   const stepsConfig = buildSteps(restaurant.mode);
@@ -182,7 +191,24 @@ export default function OrderTracker({
         </div>
       )}
 
+      {order.status === "cancelled" && (
+        <div className="px-4 pt-5 animate-fade-in">
+          <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+              <Ban size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-rose-800">Pedido cancelado</p>
+              <p className="mt-0.5 text-xs text-rose-700/80">
+                El restaurante canceló este pedido. Si tenés dudas, consultá en el local.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Horizontal stepper */}
+      {order.status !== "cancelled" && (
       <div className="px-4 pt-5 animate-fade-in">
         <div className="rounded-2xl bg-[var(--surface)] p-5 shadow-sm border border-[var(--border)]">
           <div className="relative">
@@ -245,9 +271,10 @@ export default function OrderTracker({
           </div>
         </div>
       </div>
+      )}
 
       {/* Keep ordering CTA */}
-      {order.status !== "delivered" && (
+      {order.status !== "delivered" && order.status !== "cancelled" && (
         <div className="px-4 pt-4 animate-fade-in">
           <Link href={`/${slug}`} className="block">
             <Button
@@ -303,7 +330,7 @@ export default function OrderTracker({
         </div>
       </div>
 
-      {order.status !== "delivered" && (
+      {order.status !== "delivered" && order.status !== "cancelled" && (
         <p className="mt-4 text-center text-xs text-[var(--muted)]">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)] animate-pulse mr-1.5 align-middle" />
           Actualizando en vivo
@@ -318,6 +345,40 @@ export default function OrderTracker({
           />
         </div>
       )}
+
+      <Modal.Backdrop
+        isOpen={cancelledModalOpen && order.status === "cancelled"}
+        onOpenChange={setCancelledModalOpen}
+      >
+        <Modal.Container>
+          <Modal.Dialog className="sm:max-w-[360px]">
+            <Modal.Header>
+              <Modal.Icon className="bg-rose-100 text-rose-700">
+                <Ban className="size-5" />
+              </Modal.Icon>
+              <Modal.Heading>Tu pedido fue cancelado</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-sm text-[var(--muted)]">
+                El restaurante canceló tu pedido #{order.order_number}. Si tenés
+                dudas, consultá directamente en el local.
+              </p>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                className="w-full"
+                variant="primary"
+                onPress={() => {
+                  setCancelledModalOpen(false);
+                  router.push(`/${slug}`);
+                }}
+              >
+                Ir al menú
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </div>
   );
 }

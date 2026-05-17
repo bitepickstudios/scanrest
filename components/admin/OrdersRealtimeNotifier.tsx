@@ -7,29 +7,29 @@ import { createClient } from "@/lib/supabase/client";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
 
 export default function OrdersRealtimeNotifier({
-  branchId,
+  restaurantId,
   restaurantSlug,
-  branchSlug,
+  defaultBranchSlug,
 }: {
-  branchId: string;
+  restaurantId: string;
   restaurantSlug: string;
-  branchSlug: string;
+  defaultBranchSlug?: string;
 }) {
   const router = useRouter();
-  const bump = useOrderNotifications((s) => s.bump);
+  const push = useOrderNotifications((s) => s.push);
 
   useEffect(() => {
     const supabase = createClient();
 
     const channel = supabase
-      .channel(`admin-orders:${branchId}`)
+      .channel(`admin-orders:${restaurantId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "orders",
-          filter: `branch_id=eq.${branchId}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
           const order = payload.new as {
@@ -39,7 +39,13 @@ export default function OrdersRealtimeNotifier({
             table_id: string | null;
             source: string | null;
           };
-          bump();
+          push({
+            id: order.id,
+            orderNumber: order.order_number,
+            customerName: order.customer_name,
+            source: order.source,
+            createdAt: new Date().toISOString(),
+          });
           sileo.success({
             title: `Nuevo pedido #${order.order_number}`,
             description: [
@@ -49,14 +55,16 @@ export default function OrdersRealtimeNotifier({
               .filter(Boolean)
               .join(" · "),
             duration: 6000,
-            button: {
-              title: "Ver",
-              onClick: () => {
-                router.push(
-                  `/admin/${restaurantSlug}/${branchSlug}/orders`
-                );
-              },
-            },
+            button: defaultBranchSlug
+              ? {
+                  title: "Ver",
+                  onClick: () => {
+                    router.push(
+                      `/admin/${restaurantSlug}/${defaultBranchSlug}/orders`
+                    );
+                  },
+                }
+              : undefined,
           });
           router.refresh();
         }
@@ -66,7 +74,7 @@ export default function OrdersRealtimeNotifier({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [branchId, restaurantSlug, branchSlug, bump, router]);
+  }, [restaurantId, restaurantSlug, defaultBranchSlug, push, router]);
 
   return null;
 }

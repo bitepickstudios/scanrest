@@ -1,5 +1,5 @@
 export type RestaurantMode = "table" | "foodcourt";
-export type OrderStatus = "new" | "preparing" | "ready" | "delivered";
+export type OrderStatus = "new" | "preparing" | "ready" | "delivered" | "cancelled";
 
 export interface Restaurant {
   id: string;
@@ -78,6 +78,8 @@ export interface Order {
   customer_ci: string | null;
   mode: RestaurantMode;
   status: OrderStatus;
+  source?: string | null;
+  branch_id?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
