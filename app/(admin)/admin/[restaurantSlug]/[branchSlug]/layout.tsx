@@ -1,4 +1,6 @@
 import { getRestaurantWithBranch } from "@/lib/current-restaurant";
+import OrdersRealtimeNotifier from "@/components/admin/OrdersRealtimeNotifier";
+import { Toaster } from "sileo";
 
 export default async function BranchLayout({
   children,
@@ -8,6 +10,19 @@ export default async function BranchLayout({
   params: Promise<{ restaurantSlug: string; branchSlug: string }>;
 }) {
   const { restaurantSlug, branchSlug } = await params;
-  await getRestaurantWithBranch(restaurantSlug, branchSlug);
-  return <>{children}</>;
+  const { restaurant, branch } = await getRestaurantWithBranch(
+    restaurantSlug,
+    branchSlug
+  );
+  return (
+    <>
+      <Toaster position="top-right" theme="light" />
+      <OrdersRealtimeNotifier
+        branchId={branch.id}
+        restaurantSlug={restaurant.slug}
+        branchSlug={branch.slug}
+      />
+      {children}
+    </>
+  );
 }

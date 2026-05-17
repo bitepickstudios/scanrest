@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, MapPin, Star, Pencil, Trash2, X, Power } from "lucide-react";
 import { Button, Card, Chip, Switch } from "@heroui/react";
+import SelectField from "@/components/ui/SelectField";
 import {
   createBranch,
   updateBranch,
@@ -293,17 +294,16 @@ function BranchModal({
             />
           </div>
 
-          <div>
-            <label className={labelClass}>Tipo</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as BranchType)}
-              className={inputClass}
-            >
-              <option value="standalone">Local independiente</option>
-              <option value="foodpark_stall">Puesto en food park</option>
-            </select>
-          </div>
+          <SelectField
+            label="Tipo"
+            value={type}
+            onChange={(v) => setType(v as BranchType)}
+            options={[
+              { value: "standalone", label: "Local independiente" },
+              { value: "foodpark_stall", label: "Puesto en food park" },
+            ]}
+            placeholder="Seleccionar tipo"
+          />
 
           <div className="flex items-center justify-between rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
             <div>

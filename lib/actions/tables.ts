@@ -14,7 +14,8 @@ export async function createTables(
   count: number,
   branchId?: string,
   zoneId?: string | null,
-  capacity?: number
+  capacity?: number,
+  labelPrefix?: string
 ) {
   const { supabase, restaurant } = await getRestaurant();
 
@@ -34,12 +35,13 @@ export async function createTables(
 
   const startNumber = existing && existing.length > 0 ? existing[0].number + 1 : 1;
   const resolvedCapacity = capacity ?? 4;
+  const prefix = labelPrefix?.trim() || "Mesa";
 
   const rows = Array.from({ length: count }, (_, i) => ({
     restaurant_id: restaurant.id,
     branch_id: targetBranchId!,
     number: startNumber + i,
-    label: `Mesa ${startNumber + i}`,
+    label: `${prefix} ${startNumber + i}`,
     zone_id: zoneId ?? null,
     capacity: resolvedCapacity,
   }));

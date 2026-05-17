@@ -21,6 +21,15 @@ DECLARE
   r_pizza  uuid := gen_random_uuid();
   r_cafe   uuid := gen_random_uuid();
 
+  b_burger uuid := gen_random_uuid();
+  b_sushi  uuid := gen_random_uuid();
+  b_pizza  uuid := gen_random_uuid();
+  b_cafe   uuid := gen_random_uuid();
+
+  z_burger_salon uuid := gen_random_uuid();
+  z_burger_terraza uuid := gen_random_uuid();
+  z_sushi_salon uuid := gen_random_uuid();
+
   c_burgers uuid; c_sides uuid; c_drinks_b uuid;
   c_rolls uuid; c_nigiri uuid; c_drinks_s uuid;
   c_pizzas uuid; c_pastas uuid; c_drinks_p uuid;
@@ -45,8 +54,19 @@ BEGIN
           '+595981111111', '+595981111111', 'burgerhouse.py',
           'Av. Mariscal López 1234, Asunción', 'table', true);
 
-  INSERT INTO tables (restaurant_id, number, label, active)
-  SELECT r_burger, n, 'Mesa ' || n, true FROM generate_series(1, 8) n;
+  INSERT INTO branches (id, restaurant_id, name, slug, type, address, phone, is_default, active)
+  VALUES (b_burger, r_burger, 'Principal', 'principal', 'restaurant',
+          'Av. Mariscal López 1234, Asunción', '+595981111111', true, true);
+
+  INSERT INTO zones (id, branch_id, name, sort_order) VALUES
+    (z_burger_salon, b_burger, 'Salón', 1),
+    (z_burger_terraza, b_burger, 'Terraza', 2);
+
+  INSERT INTO tables (restaurant_id, branch_id, zone_id, number, label, capacity, active)
+  SELECT r_burger, b_burger,
+         CASE WHEN n <= 5 THEN z_burger_salon ELSE z_burger_terraza END,
+         n, 'Mesa ' || n, 4, true
+  FROM generate_series(1, 8) n;
 
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES
     (r_burger, 'Burgers', 1) RETURNING id INTO c_burgers;
@@ -104,8 +124,16 @@ BEGIN
           '+595982222222', '+595982222222', 'sakura.py',
           'Av. España 567, Asunción', 'table', true);
 
-  INSERT INTO tables (restaurant_id, number, label, active)
-  SELECT r_sushi, n, 'Mesa ' || n, true FROM generate_series(1, 6) n;
+  INSERT INTO branches (id, restaurant_id, name, slug, type, address, phone, is_default, active)
+  VALUES (b_sushi, r_sushi, 'Principal', 'principal', 'restaurant',
+          'Av. España 567, Asunción', '+595982222222', true, true);
+
+  INSERT INTO zones (id, branch_id, name, sort_order)
+  VALUES (z_sushi_salon, b_sushi, 'Salón', 1);
+
+  INSERT INTO tables (restaurant_id, branch_id, zone_id, number, label, capacity, active)
+  SELECT r_sushi, b_sushi, z_sushi_salon, n, 'Mesa ' || n, 4, true
+  FROM generate_series(1, 6) n;
 
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_sushi, 'Rolls', 1) RETURNING id INTO c_rolls;
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_sushi, 'Nigiri', 2) RETURNING id INTO c_nigiri;
@@ -133,7 +161,12 @@ BEGIN
           '+595983333333', '+595983333333', 'bellapizza.py',
           'Patio gastronómico Shopping del Sol', 'foodcourt', true);
 
-  INSERT INTO tables (restaurant_id, number, label, active) VALUES (r_pizza, 1, 'Mostrador', true);
+  INSERT INTO branches (id, restaurant_id, name, slug, type, address, phone, is_default, active)
+  VALUES (b_pizza, r_pizza, 'Shopping del Sol', 'shopping-del-sol', 'foodpark_stall',
+          'Patio gastronómico Shopping del Sol', '+595983333333', true, true);
+
+  INSERT INTO tables (restaurant_id, branch_id, number, label, capacity, active)
+  VALUES (r_pizza, b_pizza, 1, 'Mostrador', 1, true);
 
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_pizza, 'Pizzas', 1) RETURNING id INTO c_pizzas;
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_pizza, 'Pastas', 2) RETURNING id INTO c_pastas;
@@ -174,7 +207,12 @@ BEGIN
           '+595984444444', '+595984444444', 'aromacafe.py',
           'Av. Brasilia 890, Asunción', 'foodcourt', true);
 
-  INSERT INTO tables (restaurant_id, number, label, active) VALUES (r_cafe, 1, 'Mostrador', true);
+  INSERT INTO branches (id, restaurant_id, name, slug, type, address, phone, is_default, active)
+  VALUES (b_cafe, r_cafe, 'Principal', 'principal', 'foodpark_stall',
+          'Av. Brasilia 890, Asunción', '+595984444444', true, true);
+
+  INSERT INTO tables (restaurant_id, branch_id, number, label, capacity, active)
+  VALUES (r_cafe, b_cafe, 1, 'Mostrador', 1, true);
 
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_cafe, 'Café', 1) RETURNING id INTO c_coffee;
   INSERT INTO categories (restaurant_id, name, sort_order) VALUES (r_cafe, 'Pastelería', 2) RETURNING id INTO c_pastries;

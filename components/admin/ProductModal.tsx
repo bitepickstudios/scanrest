@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { Button } from "@heroui/react";
+import SelectField from "@/components/ui/SelectField";
 import { createProduct, updateProduct } from "@/lib/actions/menu";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Product } from "@/lib/types";
@@ -24,6 +25,9 @@ export default function ProductModal({
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [uploading, setUploading] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    product?.category_id ?? categoryId
+  );
 
   async function uploadImage(file: File): Promise<string | null> {
     const supabase = createClient();
@@ -51,7 +55,7 @@ export default function ProductModal({
     setError(null);
     const fd = new FormData(e.currentTarget);
     const data = {
-      category_id: fd.get("category_id") as string || null,
+      category_id: selectedCategoryId || null,
       name: fd.get("name") as string,
       description: fd.get("description") as string,
       price: parseFloat(fd.get("price") as string),
@@ -88,14 +92,13 @@ export default function ProductModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <div>
-            <label className={labelClass}>Categoría</label>
-            <select name="category_id" defaultValue={product?.category_id ?? categoryId} className={inputClass}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Categoría"
+            value={selectedCategoryId}
+            onChange={setSelectedCategoryId}
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="Seleccionar categoría"
+          />
 
           <div>
             <label className={labelClass} htmlFor="p-name">Nombre *</label>

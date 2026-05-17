@@ -26,15 +26,25 @@
 /auth/register                              → Owner register
 /auth/select-restaurant                     → Multi-restaurant picker
 
-/admin/[restaurantSlug]                     → Admin home (stats)
-/admin/[restaurantSlug]/profile             → Restaurant profile editor
-/admin/[restaurantSlug]/menu                → Products & categories CRUD
-/admin/[restaurantSlug]/tables              → Table/QR manager
-/admin/[restaurantSlug]/orders              → Kanban board
-/admin/[restaurantSlug]/reviews             → Reviews viewer
+/admin/[restaurantSlug]                                    → Admin home (redirect a sucursal default)
+/admin/[restaurantSlug]/profile                            → Restaurant profile editor
+/admin/[restaurantSlug]/menu                               → Products & categories CRUD (catálogo maestro)
+/admin/[restaurantSlug]/sucursales                         → Branches CRUD
+/admin/[restaurantSlug]/settings/staff                     → Staff/roles (admin, waiter) + zonas asignadas
+/admin/[restaurantSlug]/[branchSlug]                       → Branch home (stats sucursal)
+/admin/[restaurantSlug]/[branchSlug]/zones                 → Zonas de la sucursal
+/admin/[restaurantSlug]/[branchSlug]/tables                → Mesas/QR de la sucursal
+/admin/[restaurantSlug]/[branchSlug]/menu-overrides        → Disponibilidad + price override por sucursal
+/admin/[restaurantSlug]/[branchSlug]/orders                → Kanban pedidos sucursal
+/admin/[restaurantSlug]/[branchSlug]/reservations          → Reservas Kanban
+/admin/[restaurantSlug]/[branchSlug]/reviews               → Reseñas sucursal
 
-/[slug]?table=[table_id]                    → Storefront (mobile, QR entry)
-/[slug]/order/[order_id]                    → Order tracker (horizontal stepper)
+/staff/[restaurantSlug]/[branchSlug]                       → Mozo PWA: grid de mesas
+/staff/[restaurantSlug]/[branchSlug]/order/new?table=[id]  → Mozo PWA: tomar pedido
+
+/[slug]/[branchSlug]?table=[table_id]                      → Storefront (mobile, QR entry, branch-scoped)
+/[slug]/[branchSlug]/reservas                              → Reserva pública (formulario)
+/[slug]/[branchSlug]/order/[order_id]                      → Order tracker
 ```
 
 ---
@@ -60,14 +70,26 @@ restaurants (id, owner_id, name, slug, description, logo_url, cover_url,
              phone, whatsapp, email, instagram, facebook, tiktok, address,
              mode [table|foodcourt], active, created_at)
 
-tables (id, restaurant_id, number, label, qr_url, active)
+branches (id, restaurant_id, name, slug, type [restaurant|foodpark_stall],
+          address, phone, is_default, active, created_at)
+zones (id, branch_id, name, sort_order)
+tables (id, restaurant_id, branch_id, zone_id, number, label, capacity, qr_url, active)
+staff (id, restaurant_id, user_id, role [superadmin|admin|waiter],
+       display_name, branch_id, active, created_at)
+staff_zones (staff_id, zone_id)  -- waiter ↔ zonas asignadas
+branch_products (branch_id, product_id, available, price_override)  -- overrides menú por sucursal
+reservations (id, branch_id, table_id, zone_id, customer_name, customer_phone,
+              customer_email, party_size, reservation_at, duration_minutes,
+              status [pending|confirmed|seated|completed|cancelled|rejected|no_show],
+              approved_by, approved_at, notes, created_at)
 categories (id, restaurant_id, name, sort_order)
 products (id, restaurant_id, category_id, name, description,
           price, image_url, available, sort_order)
 modifier_groups (id, product_id, name, required, max_selections)
 modifiers (id, group_id, name, price_delta)
-orders (id, restaurant_id, table_id, order_number, customer_name,
+orders (id, restaurant_id, branch_id, table_id, order_number, customer_name,
         customer_phone, customer_ci, mode, status [new|preparing|ready|delivered],
+        source [storefront|waiter], waiter_id, wants_invoice, ruc, razon_social,
         notes, created_at, updated_at)
 order_items (id, order_id, product_id, product_name, quantity, unit_price, notes)
 order_item_modifiers (id, order_item_id, modifier_name, price_delta)
@@ -160,6 +182,21 @@ reviews (id, restaurant_id, customer_name, rating, comment, created_at)
 - [x] ProductCard reusable (compact + full)
 - [x] Mesa persistente vía localStorage + TTL 6h (`TableRestorer`)
 - [x] `scrollbar-hide` utility global
+
+## Phase 8 — Multi-Sucursales + Roles + Mozos + Reservas ✅
+
+- [x] Schema: `branches`, `zones`, `staff` (con roles), `staff_zones`, `branch_products`, `reservations`
+- [x] `tables` con `branch_id`, `zone_id`, `capacity`
+- [x] `orders` con `branch_id`, `source` (storefront|waiter), `waiter_id`, `wants_invoice`, `ruc`, `razon_social`
+- [x] Helpers SECURITY DEFINER: `owns_branch()`, `staff_has_branch_access()`
+- [x] Routing refactor: `/admin/[rest]/[branch]/*`, `/[slug]/[branchSlug]/*`, `/staff/[rest]/[branch]/*`
+- [x] `getRestaurantWithBranch`, `getCurrentStaffRole`, `listBranchesForRestaurant`
+- [x] Admin: BranchesManager, ZonesManager, TablesManager (con zona/capacidad), MenuOverridesManager, StaffManager
+- [x] BranchSwitcher en Sidebar (preserva URL tail al cambiar sucursal)
+- [x] Mozo PWA: TableGrid + OrderTaker (search/categorías/checkout con factura RUC)
+- [x] `createWaiterOrder` server action
+- [x] Reservas: form storefront (`/[slug]/[branchSlug]/reservas`) + Kanban admin con overlap check
+- [x] Seed: branches + zones + capacity por mesa
 
 ---
 

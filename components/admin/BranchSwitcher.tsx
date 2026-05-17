@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronDown, MapPin, Settings } from "lucide-react";
-import { Dropdown, Label } from "@heroui/react";
+import { MapPin, Settings } from "lucide-react";
+import { ListBox, Select } from "@heroui/react";
+import type { Key } from "react";
 
 export type BranchLite = {
   id: string;
@@ -11,6 +12,8 @@ export type BranchLite = {
   is_default: boolean;
   active: boolean;
 };
+
+const MANAGE_KEY = "__manage";
 
 export default function BranchSwitcher({
   restaurantSlug,
@@ -30,9 +33,10 @@ export default function BranchSwitcher({
     active.find((b) => b.is_default) ??
     active[0];
 
-  function handleAction(key: React.Key) {
-    const k = String(key);
-    if (k === "__manage") {
+  function handleChange(value: Key | Key[] | null) {
+    const k = Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
+    if (!k) return;
+    if (k === MANAGE_KEY) {
       router.push(`/admin/${restaurantSlug}/sucursales`);
       return;
     }
@@ -66,32 +70,32 @@ export default function BranchSwitcher({
   }
 
   return (
-    <Dropdown>
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-left text-xs font-medium text-neutral-700 hover:border-neutral-300"
-      >
-        <MapPin size={12} className="shrink-0 text-neutral-400" />
-        <span className="flex-1 truncate">{current.name}</span>
-        <ChevronDown size={12} className="text-neutral-400" />
-      </button>
-      <Dropdown.Popover>
-        <Dropdown.Menu onAction={handleAction}>
+    <Select
+      fullWidth
+      value={current.id}
+      onChange={handleChange}
+      placeholder="Sucursal"
+    >
+      <Select.Trigger>
+        <Select.Value />
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
           {active.map((b) => (
-            <Dropdown.Item key={b.id} id={b.id} textValue={b.name}>
-              <Label>
-                {b.name}
-                {b.is_default ? " · principal" : ""}
-              </Label>
-            </Dropdown.Item>
+            <ListBox.Item key={b.id} id={b.id} textValue={b.name}>
+              {b.name}
+              {b.is_default ? " · principal" : ""}
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
           ))}
-          <Dropdown.Item id="__manage" textValue="Gestionar sucursales">
-            <Label className="flex items-center gap-1.5">
-              <Settings size={12} /> Gestionar sucursales
-            </Label>
-          </Dropdown.Item>
-        </Dropdown.Menu>
-      </Dropdown.Popover>
-    </Dropdown>
+          <ListBox.Item id={MANAGE_KEY} textValue="Gestionar sucursales">
+            <Settings size={12} className="mr-1.5 inline" />
+            Gestionar sucursales
+            <ListBox.ItemIndicator />
+          </ListBox.Item>
+        </ListBox>
+      </Select.Popover>
+    </Select>
   );
 }

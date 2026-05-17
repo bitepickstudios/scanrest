@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, UserCircle, Pencil, Power } from "lucide-react";
 import { Button, Chip } from "@heroui/react";
+import SelectField from "@/components/ui/SelectField";
 import {
   inviteStaff,
   updateStaffRole,
@@ -264,37 +265,29 @@ function StaffModal({
             </>
           )}
 
-          <div>
-            <label className={labelClass}>Rol *</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as StaffRole)}
-              className={inputClass}
-            >
-              <option value="admin">Admin (gestiona sucursal)</option>
-              <option value="waiter">Mozo (toma pedidos en mesa)</option>
-            </select>
-          </div>
+          <SelectField
+            label="Rol *"
+            value={role}
+            onChange={(v) => setRole(v as StaffRole)}
+            options={[
+              { value: "admin", label: "Admin (gestiona sucursal)" },
+              { value: "waiter", label: "Mozo (toma pedidos en mesa)" },
+            ]}
+            placeholder="Seleccionar rol"
+          />
 
           {!staff && (
-            <div>
-              <label className={labelClass}>Sucursal</label>
-              <select
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setZoneIds([]);
-                }}
-                className={inputClass}
-              >
-                <option value="">Todas (admin global)</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              label="Sucursal"
+              value={branchId}
+              onChange={(v) => {
+                setBranchId(v);
+                setZoneIds([]);
+              }}
+              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              emptyLabel="Todas (admin global)"
+              placeholder="Seleccionar sucursal"
+            />
           )}
 
           {role === "waiter" && (staff ? true : !!branchId) && (

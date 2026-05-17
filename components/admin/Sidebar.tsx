@@ -16,11 +16,14 @@ import {
   Users,
   LayoutGrid,
   SlidersHorizontal,
+  CalendarDays,
 } from "lucide-react";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
 import { Button } from "@heroui/react";
 import BranchSwitcher, { type BranchLite } from "./BranchSwitcher";
+import { useOrderNotifications } from "@/lib/stores/order-notifications";
 
 export default function Sidebar({
   restaurant,
@@ -35,7 +38,15 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const newOrderCount = useOrderNotifications((s) => s.newOrderCount);
+  const resetNotifications = useOrderNotifications((s) => s.reset);
   const restBase = `/admin/${restaurant.slug}`;
+
+  useEffect(() => {
+    if (pathname.includes("/orders") || pathname.includes("/tables")) {
+      resetNotifications();
+    }
+  }, [pathname, resetNotifications]);
   const RESTAURANT_LEVEL_SEGMENTS = new Set([
     "profile",
     "menu",
@@ -63,6 +74,7 @@ export default function Sidebar({
     { href: `${branchBase}/tables`, label: "Mesas", icon: Table2 },
     { href: `${branchBase}/menu-overrides`, label: "Disponibilidad", icon: SlidersHorizontal },
     { href: `${branchBase}/orders`, label: "Pedidos", icon: ClipboardList },
+    { href: `${branchBase}/reservations`, label: "Reservas", icon: CalendarDays },
     { href: `${branchBase}/reviews`, label: "Reseñas", icon: Star },
     { href: `${restBase}/settings/staff`, label: "Equipo", icon: Users },
   ];
@@ -109,6 +121,7 @@ export default function Sidebar({
       <nav className="flex-1 space-y-0.5 px-2 py-3">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
+          const showBadge = label === "Mesas" && newOrderCount > 0;
           return (
             <Link
               key={label}
@@ -120,7 +133,18 @@ export default function Sidebar({
               }`}
             >
               <Icon size={16} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showBadge && (
+                <span
+                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                    active
+                      ? "bg-white text-neutral-900"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {newOrderCount > 99 ? "99+" : newOrderCount}
+                </span>
+              )}
             </Link>
           );
         })}

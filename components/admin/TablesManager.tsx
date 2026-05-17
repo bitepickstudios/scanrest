@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { Plus, Download, Trash2, QrCode, Pencil, X } from "lucide-react";
 import { Switch, Button } from "@heroui/react";
+import SelectField from "@/components/ui/SelectField";
 import QRCode from "qrcode";
 import { saveAs } from "file-saver";
 import {
@@ -30,10 +31,9 @@ export default function TablesManager({
   zones: ZoneOption[];
   mode: "table" | "foodcourt";
 }) {
-  const [count, setCount] = useState(1);
-  const [capacity, setCapacity] = useState(4);
-  const [zoneId, setZoneId] = useState<string>("");
   const [editing, setEditing] = useState<Table | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Table | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const branchPath = branchSlug ? `/${branchSlug}` : "";
@@ -61,13 +61,6 @@ export default function TablesManager({
     }
   }
 
-  function handleAddTables() {
-    if (count < 1) return;
-    startTransition(async () => {
-      await createTables(count, branchId, zoneId || null, capacity);
-      setCount(1);
-    });
-  }
 
   if (mode === "foodcourt") {
     const foodcourtUrl =
@@ -99,62 +92,15 @@ export default function TablesManager({
     );
   }
 
-  const inputClass =
-    "rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
-
   return (
     <div className="p-8">
-      <div className="mb-6 flex flex-wrap items-end gap-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-600">
-            Cantidad
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={count}
-            onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-            className={`${inputClass} w-20`}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-600">
-            Capacidad
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={20}
-            value={capacity}
-            onChange={(e) => setCapacity(parseInt(e.target.value) || 4)}
-            className={`${inputClass} w-20`}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-600">
-            Zona
-          </label>
-          <select
-            value={zoneId}
-            onChange={(e) => setZoneId(e.target.value)}
-            className={`${inputClass} min-w-[160px]`}
-          >
-            <option value="">Sin zona</option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <Button
           variant="primary"
-          onPress={handleAddTables}
+          onPress={() => setCreating(true)}
           isDisabled={isPending}
         >
-          <Plus size={14} />
-          {count === 1 ? "Agregar mesa" : `Agregar ${count} mesas`}
+          <Plus size={14} /> Agregar mesas
         </Button>
         {initial.length > 0 && (
           <Button variant="outline" onPress={downloadAllQRs}>
@@ -185,12 +131,7 @@ export default function TablesManager({
                   `mesa-${table.number}`
                 )
               }
-              onDelete={() =>
-                startTransition(async () => {
-                  if (!confirm(`¿Eliminar ${table.label}?`)) return;
-                  await deleteTable(table.id);
-                })
-              }
+              onDelete={() => setDeleting(table)}
               onToggle={() =>
                 startTransition(async () => {
                   await toggleTableActive(table.id, !table.active);
@@ -209,6 +150,204 @@ export default function TablesManager({
           onClose={() => setEditing(null)}
         />
       )}
+
+      {creating && (
+        <CreateTablesModal
+          branchId={branchId}
+          zones={zones}
+          onClose={() => setCreating(false)}
+        />
+      )}
+
+      {deleting && (
+        <DeleteTableModal
+          table={deleting}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeleteTableModal({
+  table,
+  onClose,
+}: {
+  table: Table;
+  onClose: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await deleteTable(table.id);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al eliminar");
+      }
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
+          <h2 className="text-base font-semibold">Eliminar mesa</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-3 p-5">
+          <p className="text-sm text-neutral-700">
+            ¿Seguro que querés eliminar <span className="font-semibold">{table.label}</span>?
+            Esta acción no se puede deshacer.
+          </p>
+          {error && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" type="button" onPress={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="danger-soft"
+              onPress={handleDelete}
+              isDisabled={isPending}
+            >
+              <Trash2 size={14} /> Eliminar
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateTablesModal({
+  branchId,
+  zones,
+  onClose,
+}: {
+  branchId: string;
+  zones: ZoneOption[];
+  onClose: () => void;
+}) {
+  const [count, setCount] = useState(1);
+  const [capacity, setCapacity] = useState(4);
+  const [zoneId, setZoneId] = useState("");
+  const [labelPrefix, setLabelPrefix] = useState("Mesa");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (count < 1) {
+      setError("Cantidad debe ser al menos 1.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await createTables(count, branchId, zoneId || null, capacity, labelPrefix);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al crear mesas");
+      }
+    });
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
+          <h2 className="text-base font-semibold">Agregar mesas</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3 p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-neutral-700">
+                Cantidad
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={count}
+                onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-neutral-700">
+                Capacidad
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={capacity}
+                onChange={(e) => setCapacity(parseInt(e.target.value) || 4)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">
+              Prefijo etiqueta
+            </label>
+            <input
+              value={labelPrefix}
+              onChange={(e) => setLabelPrefix(e.target.value)}
+              placeholder="Mesa"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              Se numerarán: {labelPrefix.trim() || "Mesa"} 1, {labelPrefix.trim() || "Mesa"} 2, …
+            </p>
+          </div>
+          <SelectField
+            label="Zona"
+            value={zoneId}
+            onChange={setZoneId}
+            options={zones.map((z) => ({ value: z.id, label: z.name }))}
+            emptyLabel="Sin zona"
+            placeholder="Seleccionar zona"
+          />
+          {error && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" type="button" onPress={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" isDisabled={isPending}>
+              {count === 1 ? "Crear mesa" : `Crear ${count} mesas`}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -371,23 +510,14 @@ function TableEditModal({
               className={inputClass}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-neutral-700">
-              Zona
-            </label>
-            <select
-              value={zoneId}
-              onChange={(e) => setZoneId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Sin zona</option>
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Zona"
+            value={zoneId}
+            onChange={setZoneId}
+            options={zones.map((z) => ({ value: z.id, label: z.name }))}
+            emptyLabel="Sin zona"
+            placeholder="Seleccionar zona"
+          />
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
               {error}
