@@ -3,6 +3,7 @@ import {
   getRestaurantBySlug,
   listOwnedRestaurants,
   getDefaultBranch,
+  listBranchesForRestaurant,
 } from "@/lib/current-restaurant";
 
 export default async function AdminLayout({
@@ -19,6 +20,7 @@ export default async function AdminLayout({
   );
   const { restaurants } = await listOwnedRestaurants();
   const defaultBranch = await getDefaultBranch(restaurant.id);
+  const branches = await listBranchesForRestaurant(restaurant.id);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -26,6 +28,13 @@ export default async function AdminLayout({
         restaurant={restaurant}
         ownedCount={restaurants.length}
         defaultBranchSlug={defaultBranch?.slug}
+        branches={branches.map((b) => ({
+          id: b.id,
+          slug: b.slug,
+          name: b.name,
+          is_default: b.is_default,
+          active: b.active,
+        }))}
       />
       <main className="flex-1 overflow-y-auto bg-neutral-50">{children}</main>
     </div>

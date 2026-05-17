@@ -13,27 +13,43 @@ import {
   LogOut,
   ArrowLeftRight,
   MapPin,
+  Users,
+  LayoutGrid,
+  SlidersHorizontal,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
 import { Button } from "@heroui/react";
+import BranchSwitcher, { type BranchLite } from "./BranchSwitcher";
 
 export default function Sidebar({
   restaurant,
   ownedCount,
   defaultBranchSlug,
+  branches,
 }: {
   restaurant: Pick<Restaurant, "name" | "slug">;
   ownedCount: number;
   defaultBranchSlug?: string;
+  branches: BranchLite[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const restBase = `/admin/${restaurant.slug}`;
+  const RESTAURANT_LEVEL_SEGMENTS = new Set([
+    "profile",
+    "menu",
+    "sucursales",
+    "settings",
+  ]);
   const pathSegments = pathname.split("/").filter(Boolean);
-  const currentBranchSlug =
+  const rawSegment =
     pathSegments[0] === "admin" && pathSegments[1] === restaurant.slug
       ? pathSegments[2]
+      : undefined;
+  const currentBranchSlug =
+    rawSegment && !RESTAURANT_LEVEL_SEGMENTS.has(rawSegment)
+      ? rawSegment
       : undefined;
   const branchSlug = currentBranchSlug ?? defaultBranchSlug;
   const branchBase = branchSlug ? `${restBase}/${branchSlug}` : restBase;
@@ -43,9 +59,12 @@ export default function Sidebar({
     { href: `${restBase}/profile`, label: "Perfil", icon: Store },
     { href: `${restBase}/sucursales`, label: "Sucursales", icon: MapPin },
     { href: `${restBase}/menu`, label: "Menú", icon: UtensilsCrossed },
+    { href: `${branchBase}/zones`, label: "Zonas", icon: LayoutGrid },
     { href: `${branchBase}/tables`, label: "Mesas", icon: Table2 },
+    { href: `${branchBase}/menu-overrides`, label: "Disponibilidad", icon: SlidersHorizontal },
     { href: `${branchBase}/orders`, label: "Pedidos", icon: ClipboardList },
     { href: `${branchBase}/reviews`, label: "Reseñas", icon: Star },
+    { href: `${restBase}/settings/staff`, label: "Equipo", icon: Users },
   ];
 
   async function handleLogout() {
@@ -72,12 +91,19 @@ export default function Sidebar({
         {ownedCount > 1 && (
           <Link
             href="/auth/select-restaurant"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900"
           >
             <ArrowLeftRight size={11} />
             Cambiar local
           </Link>
         )}
+        <div className="mt-3">
+          <BranchSwitcher
+            restaurantSlug={restaurant.slug}
+            branches={branches}
+            currentBranchSlug={branchSlug}
+          />
+        </div>
       </div>
 
       <nav className="flex-1 space-y-0.5 px-2 py-3">
@@ -85,7 +111,7 @@ export default function Sidebar({
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
-              key={href}
+              key={label}
               href={href}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 active

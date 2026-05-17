@@ -1,36 +1,45 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Plus, Download, Trash2, QrCode } from "lucide-react";
+import { Plus, Download, Trash2, QrCode, Pencil, X } from "lucide-react";
 import { Switch, Button } from "@heroui/react";
 import QRCode from "qrcode";
 import { saveAs } from "file-saver";
-import { createTables, deleteTable, toggleTableActive } from "@/lib/actions/tables";
+import {
+  createTables,
+  deleteTable,
+  toggleTableActive,
+  updateTable,
+} from "@/lib/actions/tables";
 import type { Table } from "@/lib/types";
+
+type ZoneOption = { id: string; name: string };
 
 export default function TablesManager({
   tables: initial,
   restaurantSlug,
   branchSlug,
+  branchId,
+  zones,
   mode,
 }: {
   tables: Table[];
   restaurantSlug: string;
   branchSlug?: string;
+  branchId: string;
+  zones: ZoneOption[];
   mode: "table" | "foodcourt";
 }) {
   const [count, setCount] = useState(1);
+  const [capacity, setCapacity] = useState(4);
+  const [zoneId, setZoneId] = useState<string>("");
+  const [editing, setEditing] = useState<Table | null>(null);
   const [isPending, startTransition] = useTransition();
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(".supabase.co", "") ?? "";
 
   const branchPath = branchSlug ? `/${branchSlug}` : "";
   function getQrUrl(table: Table) {
     return `${window.location.origin}/${restaurantSlug}${branchPath}?table=${table.id}`;
   }
-
   function getFoodcourtQrUrl() {
     return `${window.location.origin}/${restaurantSlug}${branchPath}`;
   }
@@ -55,7 +64,7 @@ export default function TablesManager({
   function handleAddTables() {
     if (count < 1) return;
     startTransition(async () => {
-      await createTables(count);
+      await createTables(count, branchId, zoneId || null, capacity);
       setCount(1);
     });
   }
@@ -73,7 +82,9 @@ export default function TablesManager({
             <p className="mt-1 text-sm text-neutral-500">
               Modo food court — un solo QR para todos los clientes
             </p>
-            <p className="mt-2 break-all text-xs text-neutral-400">{foodcourtUrl}</p>
+            <p className="mt-2 break-all text-xs text-neutral-400">
+              {foodcourtUrl}
+            </p>
             <Button
               variant="primary"
               fullWidth
@@ -88,23 +99,63 @@ export default function TablesManager({
     );
   }
 
+  const inputClass =
+    "rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
+
   return (
     <div className="p-8">
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-end gap-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-600">
+            Cantidad
+          </label>
           <input
             type="number"
             min={1}
             max={50}
             value={count}
             onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-            className="w-20 rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+            className={`${inputClass} w-20`}
           />
-          <Button variant="primary" onPress={handleAddTables} isDisabled={isPending}>
-            <Plus size={14} />
-            {count === 1 ? "Agregar mesa" : `Agregar ${count} mesas`}
-          </Button>
         </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-600">
+            Capacidad
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={capacity}
+            onChange={(e) => setCapacity(parseInt(e.target.value) || 4)}
+            className={`${inputClass} w-20`}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-600">
+            Zona
+          </label>
+          <select
+            value={zoneId}
+            onChange={(e) => setZoneId(e.target.value)}
+            className={`${inputClass} min-w-[160px]`}
+          >
+            <option value="">Sin zona</option>
+            {zones.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button
+          variant="primary"
+          onPress={handleAddTables}
+          isDisabled={isPending}
+        >
+          <Plus size={14} />
+          {count === 1 ? "Agregar mesa" : `Agregar ${count} mesas`}
+        </Button>
         {initial.length > 0 && (
           <Button variant="outline" onPress={downloadAllQRs}>
             <Download size={14} /> Descargar todos los QRs
@@ -124,6 +175,9 @@ export default function TablesManager({
             <QRCard
               key={table.id}
               table={table}
+              zoneName={
+                zones.find((z) => z.id === table.zone_id)?.name ?? null
+              }
               url={typeof window !== "undefined" ? getQrUrl(table) : ""}
               onDownload={() =>
                 downloadQR(
@@ -142,9 +196,18 @@ export default function TablesManager({
                   await toggleTableActive(table.id, !table.active);
                 })
               }
+              onEdit={() => setEditing(table)}
             />
           ))}
         </div>
+      )}
+
+      {editing && (
+        <TableEditModal
+          table={editing}
+          zones={zones}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );
@@ -152,16 +215,20 @@ export default function TablesManager({
 
 function QRCard({
   table,
+  zoneName,
   url,
   onDownload,
   onDelete,
   onToggle,
+  onEdit,
 }: {
   table: Table;
+  zoneName: string | null;
   url: string;
   onDownload: () => void;
   onDelete: () => void;
   onToggle: () => void;
+  onEdit: () => void;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -177,6 +244,7 @@ function QRCard({
       }`}
     >
       {qrDataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={qrDataUrl} alt={table.label} className="mx-auto w-full" />
       ) : (
         <div className="flex h-[120px] items-center justify-center">
@@ -184,6 +252,10 @@ function QRCard({
         </div>
       )}
       <p className="mt-2 text-sm font-semibold">{table.label}</p>
+      <p className="text-xs text-neutral-500">
+        {zoneName ? `${zoneName} · ` : ""}
+        {table.capacity ?? 4} pers.
+      </p>
       <div className="mt-2 flex items-center justify-center gap-1">
         <Switch
           isSelected={table.active}
@@ -191,14 +263,145 @@ function QRCard({
           size="sm"
           aria-label={table.active ? "Mesa activa" : "Mesa inactiva"}
         >
-          <Switch.Control><Switch.Thumb /></Switch.Control>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
         </Switch>
-        <Button variant="ghost" size="sm" isIconOnly onPress={onDownload} aria-label="Descargar QR">
-          <Download size={16} />
+        <Button
+          variant="ghost"
+          size="sm"
+          isIconOnly
+          onPress={onEdit}
+          aria-label="Editar"
+        >
+          <Pencil size={14} />
         </Button>
-        <Button variant="danger-soft" size="sm" isIconOnly onPress={onDelete} aria-label="Eliminar">
-          <Trash2 size={16} />
+        <Button
+          variant="ghost"
+          size="sm"
+          isIconOnly
+          onPress={onDownload}
+          aria-label="Descargar QR"
+        >
+          <Download size={14} />
         </Button>
+        <Button
+          variant="danger-soft"
+          size="sm"
+          isIconOnly
+          onPress={onDelete}
+          aria-label="Eliminar"
+        >
+          <Trash2 size={14} />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function TableEditModal({
+  table,
+  zones,
+  onClose,
+}: {
+  table: Table;
+  zones: ZoneOption[];
+  onClose: () => void;
+}) {
+  const [label, setLabel] = useState(table.label);
+  const [capacity, setCapacity] = useState(table.capacity ?? 4);
+  const [zoneId, setZoneId] = useState(table.zone_id ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      try {
+        await updateTable(table.id, {
+          label: label.trim() || `Mesa ${table.number}`,
+          capacity,
+          zone_id: zoneId || null,
+        });
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al guardar");
+      }
+    });
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
+          <h2 className="text-base font-semibold">Editar {table.label}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3 p-5">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">
+              Etiqueta
+            </label>
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">
+              Capacidad
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={capacity}
+              onChange={(e) => setCapacity(parseInt(e.target.value) || 1)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">
+              Zona
+            </label>
+            <select
+              value={zoneId}
+              onChange={(e) => setZoneId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Sin zona</option>
+              {zones.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {error && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" type="button" onPress={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" isDisabled={isPending}>
+              Guardar
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

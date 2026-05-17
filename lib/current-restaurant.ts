@@ -80,7 +80,7 @@ export async function listBranchesForRestaurant(restaurantId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("branches")
-    .select("id, slug, name, is_default, active, type, address")
+    .select("id, slug, name, is_default, active, type, address, phone")
     .eq("restaurant_id", restaurantId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });

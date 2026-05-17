@@ -24,6 +24,9 @@ export interface Restaurant {
 export interface Table {
   id: string;
   restaurant_id: string;
+  branch_id?: string;
+  zone_id?: string | null;
+  capacity?: number;
   number: number;
   label: string;
   qr_url: string | null;

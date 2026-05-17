@@ -38,9 +38,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
+  // Logged-in users hitting auth pages: allow login/register/post-login
+  // (lets them switch accounts). Other /auth/* paths bounce to dashboard.
   if (
     user &&
     path.startsWith("/auth") &&
+    path !== "/auth/login" &&
+    path !== "/auth/register" &&
+    path !== "/auth/post-login" &&
     path !== "/auth/select-restaurant" &&
     path !== "/auth/onboarding"
   ) {
