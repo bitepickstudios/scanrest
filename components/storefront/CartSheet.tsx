@@ -7,6 +7,9 @@ import { Button, Input } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import { createClient } from "@/lib/supabase/client";
 import { setActiveOrder } from "@/lib/active-order";
+import { getCustomerIdentity, setCustomerIdentity } from "@/lib/customer-identity";
+import { getTableSessionId, setTableSessionId } from "@/lib/table-session";
+import { ensureTableSession } from "@/lib/actions/table-sessions";
 import type { Product, ModifierGroup, Modifier } from "@/lib/types";
 import ProductModal from "./ProductModal";
 import QuantityStepper from "./QuantityStepper";
@@ -74,6 +77,15 @@ export default function CartSheet({
     };
   }, []);
 
+  useEffect(() => {
+    const id = getCustomerIdentity(restaurantSlug);
+    if (id) {
+      setName(id.name);
+      setPhone(id.phone);
+      if (id.ci) setCi(id.ci);
+    }
+  }, [restaurantSlug]);
+
   function startEdit(itemKey: string) {
     const item = items.find((i) => i.key === itemKey);
     if (!item) return;
@@ -138,12 +150,46 @@ export default function CartSheet({
       return;
     }
 
+    let sessionId: string | null = null;
+    if (mode === "table" && tableId) {
+      const cached = getTableSessionId(restaurantSlug, tableId);
+      if (cached) {
+        const { data: stillOpen } = await supabase
+          .from("table_sessions")
+          .select("id")
+          .eq("id", cached)
+          .neq("status", "closed")
+          .maybeSingle();
+        if (stillOpen) sessionId = cached;
+      }
+      if (!sessionId) {
+        try {
+          sessionId = await ensureTableSession({
+            restaurantId: restaurant.id,
+            branchId: resolvedBranchId,
+            tableId,
+            customerName: name.trim(),
+          });
+          setTableSessionId(restaurantSlug, tableId, sessionId);
+        } catch {
+          sessionId = null;
+        }
+      }
+    }
+
+    setCustomerIdentity(restaurantSlug, {
+      name: name.trim(),
+      phone: phone.trim(),
+      ci: ci.trim() || undefined,
+    });
+
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         restaurant_id: restaurant.id,
         branch_id: resolvedBranchId,
         table_id: tableId ?? null,
+        session_id: sessionId,
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         customer_ci: ci.trim() || null,

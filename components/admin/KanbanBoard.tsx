@@ -81,6 +81,10 @@ export default function KanbanBoard({
   );
 
   useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
+
+  useEffect(() => {
     const supabase = createClient();
     const channel = supabase
       .channel(`kanban-${restaurantId}`)
@@ -90,17 +94,20 @@ export default function KanbanBoard({
           event: "*",
           schema: "public",
           table: "orders",
-          filter: `restaurant_id=eq.${restaurantId}`,
         },
-        () => {
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { restaurant_id?: string };
+          if (row?.restaurant_id !== restaurantId) return;
           router.refresh();
         }
       )
       .subscribe();
+    const interval = setInterval(() => router.refresh(), 5000);
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, router]);
+  }, [restaurantId, router, initialOrders]);
 
   const activeOrder = activeId ? orders.find((o) => o.id === activeId) ?? null : null;
 
