@@ -30,8 +30,35 @@ export default function TableGrid({
   );
 
   function tableHref(t: Table) {
-    return `/staff/${restaurantSlug}/${branchSlug}/order/new?table=${t.id}`;
+    return `/staff/${restaurantSlug}/${branchSlug}/tables/${t.id}`;
   }
+
+  function tableStatus(t: Table): "available" | "occupied" | "billing" {
+    if (t.status === "billing") return "billing";
+    if (t.status === "occupied" || occupiedTableIds.has(t.id)) return "occupied";
+    return "available";
+  }
+
+  const STATE_STYLES: Record<
+    "available" | "occupied" | "billing",
+    { card: string; chip: string; label: string }
+  > = {
+    available: {
+      card: "border-neutral-200 bg-white hover:border-neutral-400",
+      chip: "",
+      label: "",
+    },
+    occupied: {
+      card: "border-amber-300 bg-amber-50",
+      chip: "bg-amber-200 text-amber-900",
+      label: "Ocupada",
+    },
+    billing: {
+      card: "border-rose-300 bg-rose-50",
+      chip: "bg-rose-200 text-rose-900",
+      label: "Cuenta",
+    },
+  };
 
   const grouped = new Map<string | null, Table[]>();
   for (const t of tables) {
@@ -81,16 +108,13 @@ export default function TableGrid({
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {section.tables.map((t) => {
-              const occupied = occupiedTableIds.has(t.id);
+              const state = tableStatus(t);
+              const styles = STATE_STYLES[state];
               return (
                 <Link
                   key={t.id}
                   href={tableHref(t)}
-                  className={`flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all ${
-                    occupied
-                      ? "border-amber-300 bg-amber-50"
-                      : "border-neutral-200 bg-white hover:border-neutral-400"
-                  }`}
+                  className={`flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all ${styles.card}`}
                 >
                   <p className="text-lg font-bold text-neutral-900">
                     {t.label}
@@ -98,9 +122,11 @@ export default function TableGrid({
                   <div className="mt-1 flex items-center gap-1 text-xs text-neutral-500">
                     <Users size={11} /> {t.capacity ?? 4}
                   </div>
-                  {occupied && (
-                    <span className="mt-2 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
-                      Ocupada
+                  {styles.label && (
+                    <span
+                      className={`mt-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${styles.chip}`}
+                    >
+                      {styles.label}
                     </span>
                   )}
                 </Link>

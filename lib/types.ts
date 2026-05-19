@@ -31,6 +31,7 @@ export interface Table {
   label: string;
   qr_url: string | null;
   active: boolean;
+  status?: "available" | "occupied" | "billing";
 }
 
 export interface Category {

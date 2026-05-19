@@ -3,27 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  Store,
-  UtensilsCrossed,
-  Table2,
-  ClipboardList,
-  Star,
-  LogOut,
-  ArrowLeftRight,
-  MapPin,
-  Users,
-  LayoutGrid,
-  SlidersHorizontal,
-  CalendarDays,
-} from "lucide-react";
-import { useEffect } from "react";
+import { ArrowLeftRight, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
-import { Button } from "@heroui/react";
+import { Button, Chip } from "@heroui/react";
 import BranchSwitcher, { type BranchLite } from "./BranchSwitcher";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
+import {
+  NAV_ITEMS,
+  RESTAURANT_LEVEL_SEGMENTS,
+  buildHref,
+  type NavItem,
+} from "./sidebar-nav-config";
 
 export default function Sidebar({
   restaurant,
@@ -41,18 +33,15 @@ export default function Sidebar({
   const newOrderCount = useOrderNotifications((s) => s.newOrderCount);
   const resetNotifications = useOrderNotifications((s) => s.reset);
   const restBase = `/admin/${restaurant.slug}`;
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   useEffect(() => {
     if (pathname.includes("/orders") || pathname.includes("/tables")) {
       resetNotifications();
     }
+    setPendingHref(null);
   }, [pathname, resetNotifications]);
-  const RESTAURANT_LEVEL_SEGMENTS = new Set([
-    "profile",
-    "menu",
-    "sucursales",
-    "settings",
-  ]);
+
   const pathSegments = pathname.split("/").filter(Boolean);
   const rawSegment =
     pathSegments[0] === "admin" && pathSegments[1] === restaurant.slug
@@ -65,19 +54,10 @@ export default function Sidebar({
   const branchSlug = currentBranchSlug ?? defaultBranchSlug;
   const branchBase = branchSlug ? `${restBase}/${branchSlug}` : restBase;
 
-  const navItems = [
-    { href: branchBase, label: "Inicio", icon: LayoutDashboard, exact: true },
-    { href: `${restBase}/profile`, label: "Perfil", icon: Store },
-    { href: `${restBase}/sucursales`, label: "Sucursales", icon: MapPin },
-    { href: `${restBase}/menu`, label: "Menú", icon: UtensilsCrossed },
-    { href: `${branchBase}/zones`, label: "Zonas", icon: LayoutGrid },
-    { href: `${branchBase}/tables`, label: "Mesas", icon: Table2 },
-    { href: `${branchBase}/menu-overrides`, label: "Disponibilidad", icon: SlidersHorizontal },
-    { href: `${branchBase}/orders`, label: "Pedidos", icon: ClipboardList },
-    { href: `${branchBase}/reservations`, label: "Reservas", icon: CalendarDays },
-    { href: `${branchBase}/reviews`, label: "Reseñas", icon: Star },
-    { href: `${restBase}/settings/staff`, label: "Equipo", icon: Users },
-  ];
+  const badgeValue = (item: NavItem): number => {
+    if (item.badgeKey === "newOrders") return newOrderCount;
+    return 0;
+  };
 
   async function handleLogout() {
     const supabase = createClient();
@@ -119,33 +99,44 @@ export default function Sidebar({
       </div>
 
       <nav className="flex-1 space-y-0.5 px-2 py-3">
-        {navItems.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname.startsWith(href);
-          const showBadge = label === "Pedidos" && newOrderCount > 0;
+        {NAV_ITEMS.map((item) => {
+          const href = buildHref(item, restBase, branchBase);
+          const routeActive = item.exact
+            ? pathname === href
+            : pathname.startsWith(href);
+          const active = pendingHref
+            ? pendingHref === href
+            : routeActive;
+          const Icon = item.icon;
+          const count = badgeValue(item);
+          const showBadge = count > 0;
           return (
-            <Link
-              key={label}
-              href={href}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-neutral-900 text-white"
-                  : "text-neutral-600 hover:bg-neutral-100"
-              }`}
+            <Button
+              key={item.key}
+              variant={active ? "primary" : "ghost"}
+              size="sm"
+              fullWidth
+              className="justify-start gap-2.5 px-3 text-sm font-medium"
+              render={(props) => (
+                <Link
+                  {...(props as React.ComponentPropsWithoutRef<typeof Link>)}
+                  href={href}
+                  onClick={() => setPendingHref(href)}
+                />
+              )}
             >
               <Icon size={16} />
-              <span className="flex-1">{label}</span>
+              <span className="flex-1 text-left">{item.label}</span>
               {showBadge && (
-                <span
-                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
-                    active
-                      ? "bg-white text-neutral-900"
-                      : "bg-red-500 text-white"
-                  }`}
+                <Chip
+                  size="sm"
+                  color={active ? "default" : "danger"}
+                  variant={active ? "soft" : "primary"}
                 >
-                  {newOrderCount > 99 ? "99+" : newOrderCount}
-                </span>
+                  {count > 99 ? "99+" : count}
+                </Chip>
               )}
-            </Link>
+            </Button>
           );
         })}
       </nav>
@@ -153,11 +144,13 @@ export default function Sidebar({
       <div className="border-t border-neutral-100 px-2 py-3">
         <Button
           variant="ghost"
+          size="sm"
+          fullWidth
           onPress={handleLogout}
-          className="w-full justify-start gap-2.5 px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+          className="justify-start gap-2.5 px-3 text-sm font-medium"
         >
           <LogOut size={16} />
-          Cerrar sesión
+          <span className="flex-1 text-left">Cerrar sesión</span>
         </Button>
       </div>
     </aside>

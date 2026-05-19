@@ -156,11 +156,18 @@ export default function CartSheet({
       if (cached) {
         const { data: stillOpen } = await supabase
           .from("table_sessions")
-          .select("id")
+          .select("id, bill_requested_at")
           .eq("id", cached)
           .neq("status", "closed")
           .maybeSingle();
-        if (stillOpen) sessionId = cached;
+        if (stillOpen) {
+          if (stillOpen.bill_requested_at) {
+            setError("La cuenta ya fue solicitada. Esperá al mozo para cerrar la mesa.");
+            setLoading(false);
+            return;
+          }
+          sessionId = cached;
+        }
       }
       if (!sessionId) {
         try {

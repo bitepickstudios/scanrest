@@ -5,6 +5,7 @@ import MenuSection from "@/components/storefront/MenuSection";
 import CartButton from "@/components/storefront/CartButton";
 import ActiveOrderBanner from "@/components/storefront/ActiveOrderBanner";
 import TableRestorer from "@/components/storefront/TableRestorer";
+import TableSessionPanel from "@/components/storefront/TableSessionPanel";
 
 export default async function StorefrontBranchPage({
   params,
@@ -94,6 +95,9 @@ export default async function StorefrontBranchPage({
         avgRating={avgRating}
         reviewCount={reviews?.length ?? 0}
       />
+      {tableId && (
+        <TableSessionPanel restaurantSlug={slug} tableId={tableId} />
+      )}
       {table && (
         <div className="px-4 pt-3">
           <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--accent)]/10 px-4 py-3">

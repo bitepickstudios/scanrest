@@ -25,6 +25,7 @@ interface WaiterOrderItem {
 export interface CreateWaiterOrderInput {
   branchId: string;
   tableId?: string | null;
+  sessionId?: string | null;
   customerName: string;
   customerPhone?: string | null;
   customerCi?: string | null;
@@ -130,6 +131,53 @@ export async function createWaiterOrder(
       throw new Error("Mesa no encontrada en esta sucursal.");
   }
 
+  // 6b. Resolve / validate session: if sessionId provided use it, else open one for the table.
+  let resolvedSessionId: string | null = input.sessionId ?? null;
+  if (input.tableId) {
+    if (resolvedSessionId) {
+      const { data: sess } = await supabase
+        .from("table_sessions")
+        .select("id, status, bill_requested_at, table_id")
+        .eq("id", resolvedSessionId)
+        .maybeSingle();
+      if (!sess || sess.table_id !== input.tableId)
+        throw new Error("Sesión inválida para esta mesa.");
+      if (sess.status === "closed")
+        throw new Error("La sesión de la mesa está cerrada.");
+      if (sess.bill_requested_at)
+        throw new Error("La cuenta ya fue solicitada. No se pueden agregar items.");
+    } else {
+      const { data: existing } = await supabase
+        .from("table_sessions")
+        .select("id, bill_requested_at")
+        .eq("table_id", input.tableId)
+        .neq("status", "closed")
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        if (existing.bill_requested_at)
+          throw new Error("La cuenta ya fue solicitada. No se pueden agregar items.");
+        resolvedSessionId = existing.id;
+      } else {
+        const { data: created, error: sessErr } = await supabase
+          .from("table_sessions")
+          .insert({
+            restaurant_id: restaurantId,
+            branch_id: input.branchId,
+            table_id: input.tableId,
+            customer_name: input.customerName.trim(),
+            status: "open",
+            opened_by_staff_id: staffId,
+          })
+          .select("id")
+          .single();
+        if (sessErr || !created) throw new Error(sessErr?.message ?? "Error al abrir sesión.");
+        resolvedSessionId = created.id;
+      }
+    }
+  }
+
   // 7. Insert order.
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -137,6 +185,7 @@ export async function createWaiterOrder(
       restaurant_id: restaurantId,
       branch_id: input.branchId,
       table_id: input.tableId ?? null,
+      session_id: resolvedSessionId,
       customer_name: input.customerName.trim(),
       customer_phone: input.customerPhone?.trim() ?? null,
       customer_ci: input.customerCi?.trim() ?? null,
