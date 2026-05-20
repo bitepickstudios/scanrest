@@ -1,7 +1,7 @@
 import { getRestaurantWithBranch } from "@/lib/current-restaurant";
 import MenuOverridesManager from "@/components/admin/MenuOverridesManager";
 
-export default async function MenuOverridesPage({
+export default async function MenuDisponibilidadPage({
   params,
 }: {
   params: Promise<{ restaurantSlug: string; branchSlug: string }>;
@@ -30,16 +30,11 @@ export default async function MenuOverridesPage({
   ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-800">
-          Disponibilidad y precios
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {branch.name} — overrides sobre el menú maestro. Desactivá productos
-          que no se venden en esta sucursal o ajustá su precio.
-        </p>
-      </div>
+    <div>
+      <p className="mb-4 text-sm text-neutral-600">
+        <span className="font-medium text-neutral-800">{branch.name}</span> —
+        desactivá productos que no se venden en esta sucursal o ajustá su precio.
+      </p>
       <MenuOverridesManager
         branchId={branch.id}
         categories={catsRes.data ?? []}

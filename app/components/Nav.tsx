@@ -36,7 +36,7 @@ export default function Nav() {
             width={2051}
             height={437}
             priority
-            className="h-8 w-auto"
+            className="h-6 w-auto"
           />
         </Link>
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-7 text-sm font-medium text-[var(--muted)] md:flex">

@@ -60,7 +60,7 @@ function Hero() {
         <div className="flex flex-col items-start">
           <RevealHeading
             as="h1"
-            className="font-[family-name:var(--font-heading)] text-5xl leading-tighest tracking-tight sm:text-6xl lg:text-8xl lg:tracking-tighter"
+            className="font-[family-name:var(--font-heading)] text-6xl leading-tighest tracking-tight sm:text-6xl lg:text-8xl lg:tracking-tighter"
             stagger={0.08}
             amount={0.1}
           >
@@ -159,7 +159,7 @@ function WhatItDoes() {
     <section className="px-4 py-20">
       <div className="mx-auto max-w-6xl text-center">
         <RevealHeading
-          className="font-[family-name:var(--font-heading)] mt-4 text-4xl tracking-tight sm:text-6xl md:text-8xl"
+          className="font-[family-name:var(--font-heading)] mt-4 text-5xl tracking-tight sm:text-6xl md:text-8xl"
           stagger={0.05}
         >
           Cargás tu menú{" "}
@@ -186,8 +186,7 @@ function WhatItDoes() {
         </RevealHeading>
         <Reveal delay={0.3}>
           <p className="mt-5 text-lg text-[var(--muted)] max-w-3xl mx-auto">
-            Todo en un solo lugar: catálogo, modificadores, fotos, mesas, cocina
-            y reportes. Sin instalar nada. Sin firmar contratos.
+            Todo en un solo lugar: manejá tu menú, gestioná reservas y pedidos, obtené información valiosa sobre tus ventas.
           </p>
         </Reveal>
       </div>
@@ -227,7 +226,7 @@ function Audience() {
     <section id="audience" className="px-4 py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
-          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-2xl tracking-tight sm:text-4xl md:text-6xl">
+          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-5xl tracking-tight sm:text-4xl md:text-6xl">
             Hecho para todo tipo de locales.
           </RevealHeading>
           <Reveal delay={0.25}>
@@ -374,7 +373,7 @@ function HowItWorks() {
     <section id="how" className=" px-4 py-24">
       <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2 md:gap-16">
         <div className="md:sticky md:top-32 md:self-start">
-          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
+          <RevealHeading className="font-[family-name:var(--font-heading)] mt-4 text-5xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
             Del primer pedido al cierre de caja.
           </RevealHeading>
           <Reveal delay={0.3}>
@@ -415,8 +414,8 @@ function Testimonials() {
     <section className="px-4 py-24">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <RevealHeading className="font-[family-name:var(--font-heading)] text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
-            Restaurantes reales. Resultados reales.
+          <RevealHeading className="font-[family-name:var(--font-heading)] text-5xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
+            Demostraciones de cómo puede quedar tu restaurante.
           </RevealHeading>
         </div>
         <StaggerGrid className="mt-12 grid gap-6 md:grid-cols-2" stagger={0.15}>
@@ -472,11 +471,11 @@ function FinalCta() {
           className="font-[family-name:var(--font-heading)] text-5xl leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl lg:tracking-tighter"
           stagger={0.07}
         >
-          Empezá hoy. Sin tarjeta. Sin compromiso.
+          Empezá hoy tu prueba gratis hoy.
         </RevealHeading>
         <Reveal delay={0.35}>
           <p className="mx-auto mt-6 max-w-xl text-lg text-white/80 sm:text-xl">
-            Tu primer pedido por QR puede estar entrando esta misma tarde.
+            Dale la facilidad a tus clientes y equipo.
           </p>
         </Reveal>
         <Reveal delay={0.5}>

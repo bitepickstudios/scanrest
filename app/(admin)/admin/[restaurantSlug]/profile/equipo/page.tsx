@@ -4,7 +4,7 @@ import {
 } from "@/lib/current-restaurant";
 import StaffManager from "@/components/admin/StaffManager";
 
-export default async function StaffPage({
+export default async function EquipoPage({
   params,
 }: {
   params: Promise<{ restaurantSlug: string }>;
@@ -46,14 +46,12 @@ export default async function StaffPage({
   }));
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-800">Equipo</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Gestioná admins y mozos de {restaurant.name}. Los mozos solo ven la
-          sucursal y zonas que se les asignen.
-        </p>
-      </div>
+    <div>
+      <p className="mb-4 text-sm text-neutral-600">
+        Gestioná admins y mozos de{" "}
+        <span className="font-medium text-neutral-800">{restaurant.name}</span>.
+        Los mozos solo ven la sucursal y zonas que se les asignen.
+      </p>
       <StaffManager
         staff={staffWithZones}
         branches={branches.map((b) => ({ id: b.id, name: b.name, slug: b.slug }))}

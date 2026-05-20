@@ -23,7 +23,7 @@ export default async function TablesPage({
       .order("number", { ascending: true }),
     supabase
       .from("zones")
-      .select("id, name")
+      .select("id, name, sort_order")
       .eq("branch_id", branch.id)
       .order("sort_order", { ascending: true }),
     supabase
@@ -61,7 +61,7 @@ export default async function TablesPage({
         <p className="mt-1 text-sm text-neutral-500">
           {branch.name} ·{" "}
           {restaurant.mode === "table"
-            ? "Gestioná mesas, pedidos activos y sesiones cerradas."
+            ? "Gestioná mesas, pedidos activos, sesiones y zonas."
             : "Un solo QR para que los clientes hagan su pedido y retiren en el mostrador."}
         </p>
       </div>

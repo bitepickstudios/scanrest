@@ -17,15 +17,12 @@ export default async function SucursalesPage({
   const branches = await listBranchesForRestaurant(restaurant.id);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-800">Sucursales</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Gestioná los locales de {restaurant.name}. Cada sucursal tiene sus
-          propias mesas, mozos y pedidos.
-        </p>
-      </div>
-
+    <div>
+      <p className="mb-4 text-sm text-neutral-600">
+        Gestioná los locales de{" "}
+        <span className="font-medium text-neutral-800">{restaurant.name}</span>.
+        Cada sucursal tiene sus propias mesas, mozos y pedidos.
+      </p>
       <BranchesManager
         restaurantSlug={restaurant.slug}
         branches={branches}

@@ -8,12 +8,14 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
 import { Button, Chip } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import BranchSwitcher, { type BranchLite } from "./BranchSwitcher";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
 import {
-  NAV_ITEMS,
+  NAV_SECTIONS,
   RESTAURANT_LEVEL_SEGMENTS,
   buildHref,
+  isNavItemActive,
   type NavItem,
 } from "./sidebar-nav-config";
 
@@ -98,47 +100,47 @@ export default function Sidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-2 py-3">
-        {NAV_ITEMS.map((item) => {
-          const href = buildHref(item, restBase, branchBase);
-          const routeActive = item.exact
-            ? pathname === href
-            : pathname.startsWith(href);
-          const active = pendingHref
-            ? pendingHref === href
-            : routeActive;
-          const Icon = item.icon;
-          const count = badgeValue(item);
-          const showBadge = count > 0;
-          return (
-            <Button
-              key={item.key}
-              variant={active ? "primary" : "ghost"}
-              size="sm"
-              fullWidth
-              className="justify-start gap-2.5 px-3 text-sm font-medium"
-              render={(props) => (
+      <nav className="flex-1 space-y-4 px-2 py-3 overflow-y-auto">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.key} className="space-y-0.5">
+            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+              {section.label}
+            </p>
+            {section.items.map((item) => {
+              const href = buildHref(item, restBase, branchBase);
+              const routeActive = isNavItemActive(item, pathname, restBase, branchBase);
+              const active = pendingHref ? pendingHref === href : routeActive;
+              const Icon = item.icon;
+              const count = badgeValue(item);
+              const showBadge = count > 0;
+              const linkClass = buttonVariants({
+                variant: active ? "primary" : "ghost",
+                size: "sm",
+                fullWidth: true,
+              });
+              return (
                 <Link
-                  {...(props as React.ComponentPropsWithoutRef<typeof Link>)}
+                  key={item.key}
                   href={href}
                   onClick={() => setPendingHref(href)}
-                />
-              )}
-            >
-              <Icon size={16} />
-              <span className="flex-1 text-left">{item.label}</span>
-              {showBadge && (
-                <Chip
-                  size="sm"
-                  color={active ? "default" : "danger"}
-                  variant={active ? "soft" : "primary"}
+                  className={`${linkClass} justify-start gap-2.5 px-3 text-sm font-medium`}
                 >
-                  {count > 99 ? "99+" : count}
-                </Chip>
-              )}
-            </Button>
-          );
-        })}
+                  <Icon size={16} />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {showBadge && (
+                    <Chip
+                      size="sm"
+                      color={active ? "default" : "danger"}
+                      variant={active ? "soft" : "primary"}
+                    >
+                      {count > 99 ? "99+" : count}
+                    </Chip>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-neutral-100 px-2 py-3">

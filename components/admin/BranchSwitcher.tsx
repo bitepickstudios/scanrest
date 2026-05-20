@@ -37,7 +37,7 @@ export default function BranchSwitcher({
     const k = Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
     if (!k) return;
     if (k === MANAGE_KEY) {
-      router.push(`/admin/${restaurantSlug}/sucursales`);
+      router.push(`/admin/${restaurantSlug}/profile/sucursales`);
       return;
     }
     const target = branches.find((b) => b.id === k);
@@ -60,7 +60,7 @@ export default function BranchSwitcher({
     return (
       <button
         type="button"
-        onClick={() => router.push(`/admin/${restaurantSlug}/sucursales`)}
+        onClick={() => router.push(`/admin/${restaurantSlug}/profile/sucursales`)}
         className="flex w-full items-center gap-2 rounded-lg border border-dashed border-neutral-300 px-2.5 py-1.5 text-left text-xs font-medium text-neutral-500 hover:border-neutral-400"
       >
         <MapPin size={12} />
@@ -75,13 +75,14 @@ export default function BranchSwitcher({
       value={current.id}
       onChange={handleChange}
       placeholder="Sucursal"
+      aria-label="Sucursal activa"
     >
       <Select.Trigger>
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
-        <ListBox>
+        <ListBox aria-label="Sucursales">
           {active.map((b) => (
             <ListBox.Item key={b.id} id={b.id} textValue={b.name}>
               {b.name}

@@ -34,6 +34,19 @@ export async function updateCategory(id: string, name: string) {
   revalidatePath(menuPath);
 }
 
+export async function reorderCategories(orderedIds: string[]) {
+  const { supabase, restaurantId, menuPath } = await getRestaurantId();
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase
+      .from("categories")
+      .update({ sort_order: i })
+      .eq("id", orderedIds[i])
+      .eq("restaurant_id", restaurantId);
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath(menuPath);
+}
+
 export async function deleteCategory(id: string) {
   const { supabase, restaurantId, menuPath } = await getRestaurantId();
   const { error } = await supabase

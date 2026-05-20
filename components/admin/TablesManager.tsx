@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Switch, Button, Chip, Tabs } from "@heroui/react";
 import SelectField from "@/components/ui/SelectField";
+import ZonesManager from "@/components/admin/ZonesManager";
 import QRCode from "qrcode";
 import { saveAs } from "file-saver";
 import {
@@ -28,7 +29,7 @@ import { closeTableSession, markSessionBilling } from "@/lib/actions/table-sessi
 import { createClient } from "@/lib/supabase/client";
 import type { Table } from "@/lib/types";
 
-type ZoneOption = { id: string; name: string };
+type ZoneOption = { id: string; name: string; sort_order?: number };
 
 type SessionOrderItem = {
   id: string;
@@ -227,6 +228,10 @@ export default function TablesManager({
               Sesiones
               <Tabs.Indicator />
             </Tabs.Tab>
+            <Tabs.Tab id="zones">
+              Zonas
+              <Tabs.Indicator />
+            </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
 
@@ -280,6 +285,17 @@ export default function TablesManager({
 
         <Tabs.Panel id="sessions" className="pt-6">
           <SessionsHistory sessions={closedSessions} />
+        </Tabs.Panel>
+
+        <Tabs.Panel id="zones" className="pt-6">
+          <ZonesManager
+            branchId={branchId}
+            zones={zones.map((z) => ({
+              id: z.id,
+              name: z.name,
+              sort_order: z.sort_order ?? 0,
+            }))}
+          />
         </Tabs.Panel>
       </Tabs>
 

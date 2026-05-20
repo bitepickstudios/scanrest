@@ -20,7 +20,7 @@ export default async function AdminHomePage({
   const active = branches.filter((b) => b.active);
 
   if (active.length === 0) {
-    redirect(`/admin/${restaurant.slug}/sucursales`);
+    redirect(`/admin/${restaurant.slug}/profile/sucursales`);
   }
 
   const def = await getDefaultBranch(restaurant.id);
