@@ -15,11 +15,15 @@ export default function ProductCard({
   product,
   onOpen,
   compact = false,
+  variant,
 }: {
   product: ProductFull;
   onOpen: () => void;
   compact?: boolean;
+  variant?: "list" | "grid" | "columns";
 }) {
+  const useVertical = compact || variant === "grid" || variant === "columns";
+  const widthClass = compact ? "w-40" : "w-full";
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
@@ -62,7 +66,7 @@ export default function ProductCard({
     updateQuantity(lastItem.key, lastItem.quantity - 1);
   }
 
-  if (compact) {
+  if (useVertical) {
     return (
       <div
         role="button"
@@ -74,7 +78,7 @@ export default function ProductCard({
             onOpen();
           }
         }}
-        className="relative w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-neutral-100 bg-white text-left shadow-sm active:scale-[0.98] transition-transform"
+        className={`relative ${widthClass} ${compact ? "shrink-0" : ""} cursor-pointer overflow-hidden rounded-[var(--menu-radius,1rem)] border border-neutral-100 bg-white text-left shadow-sm active:scale-[0.98] transition-transform`}
       >
         {product.image_url ? (
           <img
@@ -156,7 +160,7 @@ export default function ProductCard({
       }}
       className="block w-full cursor-pointer text-left active:scale-[0.98] transition-transform"
     >
-      <Card variant="default" className="rounded-2xl shadow-sm overflow-hidden">
+      <Card variant="default" className="rounded-[var(--menu-radius,1rem)] shadow-sm overflow-hidden">
         <Card.Content className="!flex !flex-row items-center gap-3">
           <div className="flex-1 min-w-0 pl-1">
             <p className="font-semibold text-neutral-900">{product.name}</p>

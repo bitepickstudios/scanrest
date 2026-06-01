@@ -82,21 +82,47 @@ export async function createRestaurant(input: {
 export async function updateRestaurantProfile(formData: FormData) {
   const { supabase, restaurant } = await getCurrentRestaurant("id, slug");
 
-  const fields = {
-    name: formData.get("name") as string,
-    slug: formData.get("slug") as string,
-    description: formData.get("description") as string,
-    phone: formData.get("phone") as string,
-    whatsapp: formData.get("whatsapp") as string,
-    email: formData.get("email") as string,
-    instagram: formData.get("instagram") as string,
-    facebook: formData.get("facebook") as string,
-    tiktok: formData.get("tiktok") as string,
-    address: formData.get("address") as string,
-    mode: formData.get("mode") as string,
-    logo_url: (formData.get("logo_url") as string) || null,
-    cover_url: (formData.get("cover_url") as string) || null,
-  };
+  const allowed = [
+    "name",
+    "slug",
+    "description",
+    "phone",
+    "whatsapp",
+    "email",
+    "instagram",
+    "facebook",
+    "tiktok",
+    "address",
+    "mode",
+    "logo_url",
+    "cover_url",
+    "theme",
+    "menu_layout",
+    "menu_rounded",
+    "accent_color",
+  ] as const;
+  const nullableEmpty = new Set([
+    "logo_url",
+    "cover_url",
+    "accent_color",
+    "description",
+    "phone",
+    "whatsapp",
+    "email",
+    "instagram",
+    "facebook",
+    "tiktok",
+    "address",
+  ]);
+
+  const fields: Record<string, string | null> = {};
+  for (const key of allowed) {
+    if (!formData.has(key)) continue;
+    const value = (formData.get(key) as string) ?? "";
+    fields[key] = value === "" && nullableEmpty.has(key) ? null : value;
+  }
+
+  if (Object.keys(fields).length === 0) return;
 
   const { error } = await supabase
     .from("restaurants")
@@ -105,8 +131,10 @@ export async function updateRestaurantProfile(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/admin/${fields.slug}/profile`);
+  const nextSlug = (fields.slug as string | undefined) ?? restaurant.slug;
+  revalidatePath(`/admin/${nextSlug}/profile`);
   revalidatePath(`/admin/${restaurant.slug}/profile`);
+  revalidatePath(`/${nextSlug}`, "layout");
 }
 
 export async function updateRestaurantImage(

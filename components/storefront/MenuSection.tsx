@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from "react";
 import { Search, X, Flame } from "lucide-react";
 import { Tabs } from "@heroui/react";
-import type { Category, Product, ModifierGroup, Modifier } from "@/lib/types";
+import type { Category, Product, ModifierGroup, Modifier, MenuLayout } from "@/lib/types";
 import ProductModal from "./ProductModal";
 import ProductCard from "./ProductCard";
 
@@ -19,6 +19,7 @@ export default function MenuSection({
   restaurantSlug,
   tableId,
   mode,
+  layout = "list",
 }: {
   categories: CategoryFull[];
   bestsellers?: ProductFull[];
@@ -26,6 +27,7 @@ export default function MenuSection({
   restaurantSlug: string;
   tableId: string | null;
   mode: string;
+  layout?: MenuLayout;
 }) {
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? "");
   const [selectedProduct, setSelectedProduct] = useState<ProductFull | null>(null);
@@ -62,13 +64,21 @@ export default function MenuSection({
     );
   }
 
+  const cardVariant: "list" | "grid" | "columns" = layout;
   const renderProductCard = (product: ProductFull) => (
     <ProductCard
       key={product.id}
       product={product}
       onOpen={() => setSelectedProduct(product)}
+      variant={cardVariant}
     />
   );
+  const containerClass =
+    layout === "grid"
+      ? "grid grid-cols-2 gap-3"
+      : layout === "columns"
+        ? "columns-2 gap-3 [&>*]:mb-3 [&>*]:break-inside-avoid"
+        : "space-y-3";
 
   return (
     <>
@@ -131,7 +141,7 @@ export default function MenuSection({
               <p className="text-sm text-neutral-400">Sin resultados.</p>
             </div>
           ) : (
-            <div className="space-y-3">{searchResults.map(renderProductCard)}</div>
+            <div className={containerClass}>{searchResults.map(renderProductCard)}</div>
           )}
         </div>
       ) : (
@@ -159,7 +169,7 @@ export default function MenuSection({
             ref={(el) => { sectionRefs.current[cat.id] = el; }}
           >
             <h2 className="mb-3 text-lg font-bold text-foreground">{cat.name}</h2>
-            <div className="space-y-3">
+            <div className={containerClass}>
               {cat.products.filter((p) => p.available).map(renderProductCard)}
             </div>
           </div>

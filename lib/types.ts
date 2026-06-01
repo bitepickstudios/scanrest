@@ -1,5 +1,8 @@
 export type RestaurantMode = "table" | "foodcourt";
 export type OrderStatus = "new" | "preparing" | "ready" | "delivered" | "cancelled";
+export type RestaurantTheme = "light" | "dark";
+export type MenuLayout = "list" | "grid" | "columns";
+export type MenuRounded = "sm" | "md" | "lg" | "full";
 
 export interface Restaurant {
   id: string;
@@ -19,6 +22,10 @@ export interface Restaurant {
   mode: RestaurantMode;
   active: boolean;
   created_at: string;
+  theme: RestaurantTheme;
+  menu_layout: MenuLayout;
+  menu_rounded: MenuRounded;
+  accent_color: string | null;
 }
 
 export interface Table {

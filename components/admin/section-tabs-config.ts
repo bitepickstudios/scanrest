@@ -6,6 +6,7 @@ export function negocioTabs(restaurantSlug: string): SectionTab[] {
   const base = `/admin/${restaurantSlug}/profile`;
   return [
     { key: "info", label: "Información", href: base, exact: true },
+    { key: "personalizacion", label: "Personalización", href: `${base}/personalizacion` },
     { key: "sucursales", label: "Sucursales", href: `${base}/sucursales` },
     { key: "equipo", label: "Equipo", href: `${base}/equipo` },
   ];

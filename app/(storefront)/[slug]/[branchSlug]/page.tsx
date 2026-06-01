@@ -7,15 +7,28 @@ import ActiveOrderBanner from "@/components/storefront/ActiveOrderBanner";
 import TableRestorer from "@/components/storefront/TableRestorer";
 import TableSessionPanel from "@/components/storefront/TableSessionPanel";
 
+const ROUNDED_VAR: Record<string, string> = {
+  sm: "0.5rem",
+  md: "1rem",
+  lg: "1.5rem",
+  full: "2rem",
+};
+
 export default async function StorefrontBranchPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string; branchSlug: string }>;
-  searchParams: Promise<{ table?: string }>;
+  searchParams: Promise<{
+    table?: string;
+    _t?: string;
+    _l?: string;
+    _r?: string;
+    _a?: string;
+  }>;
 }) {
   const { slug, branchSlug } = await params;
-  const { table: tableId } = await searchParams;
+  const { table: tableId, _t, _l, _r, _a } = await searchParams;
 
   const supabase = await createClient();
 
@@ -87,8 +100,22 @@ export default async function StorefrontBranchPage({
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : null;
 
+  const theme = (["light", "dark"].includes(_t ?? "") ? _t : restaurant.theme) ?? "light";
+  const layout = (["list", "grid", "columns"].includes(_l ?? "") ? _l : restaurant.menu_layout) ?? "list";
+  const rounded = (["sm", "md", "lg", "full"].includes(_r ?? "") ? _r : restaurant.menu_rounded) ?? "md";
+  const accent = _a ? decodeURIComponent(_a) : restaurant.accent_color;
+
+  const themeStyle = {
+    "--menu-radius": ROUNDED_VAR[rounded as string],
+    ...(accent ? { "--accent": accent, "--focus": accent } : {}),
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div
+      data-theme={theme}
+      style={themeStyle}
+      className="min-h-screen bg-[var(--background)] text-[var(--foreground)] pb-28"
+    >
       <TableRestorer slug={slug} currentTableId={tableId ?? null} />
       <StorefrontHeader
         restaurant={restaurant}
@@ -121,6 +148,7 @@ export default async function StorefrontBranchPage({
         restaurantSlug={slug}
         tableId={tableId ?? null}
         mode={restaurant.mode}
+        layout={layout as any}
       />
       <ActiveOrderBanner slug={slug} branchSlug={branchSlug} />
       <CartButton
