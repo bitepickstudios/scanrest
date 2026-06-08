@@ -1,6 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { Upload } from "lucide-react";
+import {
+  Button,
+  Input,
+  Label,
+  Radio,
+  RadioGroup,
+  TextArea,
+  TextField,
+} from "@heroui/react";
 import { updateRestaurantProfile } from "@/lib/actions/restaurant";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
@@ -16,6 +26,32 @@ export default function ProfileForm({
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
   const [logoUrl, setLogoUrl] = useState(restaurant.logo_url ?? "");
   const [coverUrl, setCoverUrl] = useState(restaurant.cover_url ?? "");
+  const [name, setName] = useState(restaurant.name);
+  const [slug, setSlug] = useState(restaurant.slug);
+  const [slugEdited, setSlugEdited] = useState(true);
+
+  function slugifyLocal(s: string) {
+    return s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  function handleNameChange(v: string) {
+    setName(v);
+    if (!slugEdited) setSlug(slugifyLocal(v));
+  }
+
+  function handleSlugChange(v: string) {
+    setSlug(v);
+    setSlugEdited(true);
+  }
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadImage(
     file: File,
@@ -75,207 +111,196 @@ export default function ProfileForm({
     });
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100";
-  const labelClass = "mb-1 block text-sm font-medium text-neutral-700";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Cover */}
-      <div>
-        <label className={labelClass}>Imagen de portada</label>
+      <div className="flex flex-col gap-2">
+        <Label>Imagen de portada</Label>
         {coverUrl && (
           <img
             src={coverUrl}
             alt="Cover"
-            className="mb-2 h-32 w-full rounded-lg object-cover"
+            className="h-32 w-full rounded-lg object-cover"
           />
         )}
         <input
+          ref={coverInputRef}
           type="file"
           accept="image/*"
           onChange={(e) => handleImageChange(e, "cover_url")}
-          className="text-sm text-neutral-500"
+          className="hidden"
           disabled={uploading !== null}
         />
-        {uploading === "cover" && (
-          <p className="mt-1 text-xs text-neutral-400">Subiendo...</p>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onPress={() => coverInputRef.current?.click()}
+          isDisabled={uploading !== null}
+          className="w-fit"
+        >
+          <Upload size={14} />
+          {uploading === "cover"
+            ? "Subiendo..."
+            : coverUrl
+              ? "Cambiar portada"
+              : "Subir portada"}
+        </Button>
       </div>
 
       {/* Logo */}
-      <div>
-        <label className={labelClass}>Logo</label>
+      <div className="flex flex-col gap-2">
+        <Label>Logo</Label>
         {logoUrl && (
           <img
             src={logoUrl}
             alt="Logo"
-            className="mb-2 h-20 w-20 rounded-full object-cover"
+            className="h-20 w-20 rounded-full object-cover"
           />
         )}
         <input
+          ref={logoInputRef}
           type="file"
           accept="image/*"
           onChange={(e) => handleImageChange(e, "logo_url")}
-          className="text-sm text-neutral-500"
+          className="hidden"
           disabled={uploading !== null}
         />
-        {uploading === "logo" && (
-          <p className="mt-1 text-xs text-neutral-400">Subiendo...</p>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onPress={() => logoInputRef.current?.click()}
+          isDisabled={uploading !== null}
+          className="w-fit"
+        >
+          <Upload size={14} />
+          {uploading === "logo"
+            ? "Subiendo..."
+            : logoUrl
+              ? "Cambiar logo"
+              : "Subir logo"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass} htmlFor="name">
-            Nombre del restaurante *
-          </label>
-          <input
-            id="name"
-            name="name"
-            required
-            defaultValue={restaurant.name}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="slug">
-            Slug (URL) *
-          </label>
-          <input
-            id="slug"
-            name="slug"
-            required
-            defaultValue={restaurant.slug}
-            pattern="[a-z0-9\-]+"
-            className={inputClass}
-          />
+        <TextField
+          isRequired
+          name="name"
+          value={name}
+          onChange={handleNameChange}
+          className="w-full"
+        >
+          <Label>Nombre del restaurante</Label>
+          <Input />
+        </TextField>
+        <TextField
+          isRequired
+          name="slug"
+          value={slug}
+          onChange={handleSlugChange}
+          className="w-full"
+        >
+          <Label>Slug (URL)</Label>
+          <Input pattern="[a-z0-9\-]+" />
           <p className="mt-1 text-xs text-neutral-400">
             Solo minúsculas, números y guiones
           </p>
-        </div>
+        </TextField>
       </div>
 
-      <div>
-        <label className={labelClass} htmlFor="description">
-          Descripción
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          rows={3}
-          defaultValue={restaurant.description ?? ""}
-          className={inputClass}
-        />
-      </div>
+      <TextField
+        name="description"
+        defaultValue={restaurant.description ?? ""}
+        className="w-full"
+      >
+        <Label>Descripción</Label>
+        <TextArea rows={3} />
+      </TextField>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass} htmlFor="phone">
-            Teléfono
-          </label>
-          <input
-            id="phone"
-            name="phone"
-            defaultValue={restaurant.phone ?? ""}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="whatsapp">
-            WhatsApp
-          </label>
-          <input
-            id="whatsapp"
-            name="whatsapp"
-            defaultValue={restaurant.whatsapp ?? ""}
-            placeholder="+595 9XX XXXXXX"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            defaultValue={restaurant.email ?? ""}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="address">
-            Dirección
-          </label>
-          <input
-            id="address"
-            name="address"
-            defaultValue={restaurant.address ?? ""}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="instagram">
-            Instagram
-          </label>
-          <input
-            id="instagram"
-            name="instagram"
-            defaultValue={restaurant.instagram ?? ""}
-            placeholder="@usuario"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="facebook">
-            Facebook
-          </label>
-          <input
-            id="facebook"
-            name="facebook"
-            defaultValue={restaurant.facebook ?? ""}
-            placeholder="facebook.com/pagina"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass} htmlFor="tiktok">
-            TikTok
-          </label>
-          <input
-            id="tiktok"
-            name="tiktok"
-            defaultValue={restaurant.tiktok ?? ""}
-            placeholder="@usuario"
-            className={inputClass}
-          />
-        </div>
+        <TextField
+          name="phone"
+          defaultValue={restaurant.phone ?? ""}
+          className="w-full"
+        >
+          <Label>Teléfono</Label>
+          <Input />
+        </TextField>
+        <TextField
+          name="whatsapp"
+          defaultValue={restaurant.whatsapp ?? ""}
+          className="w-full"
+        >
+          <Label>WhatsApp</Label>
+          <Input placeholder="+595 9XX XXXXXX" />
+        </TextField>
+        <TextField
+          name="email"
+          type="email"
+          defaultValue={restaurant.email ?? ""}
+          className="w-full"
+        >
+          <Label>Email</Label>
+          <Input />
+        </TextField>
+        <TextField
+          name="address"
+          defaultValue={restaurant.address ?? ""}
+          className="w-full"
+        >
+          <Label>Dirección</Label>
+          <Input />
+        </TextField>
+        <TextField
+          name="instagram"
+          defaultValue={restaurant.instagram ?? ""}
+          className="w-full"
+        >
+          <Label>Instagram</Label>
+          <Input placeholder="@usuario" />
+        </TextField>
+        <TextField
+          name="facebook"
+          defaultValue={restaurant.facebook ?? ""}
+          className="w-full"
+        >
+          <Label>Facebook</Label>
+          <Input placeholder="facebook.com/pagina" />
+        </TextField>
+        <TextField
+          name="tiktok"
+          defaultValue={restaurant.tiktok ?? ""}
+          className="w-full"
+        >
+          <Label>TikTok</Label>
+          <Input placeholder="@usuario" />
+        </TextField>
       </div>
 
-      <div>
-        <label className={labelClass}>Modo de operación</label>
-        <div className="flex gap-4">
-          {[
-            { value: "table", label: "Restaurante con mesas" },
-            { value: "foodcourt", label: "Food court (retiro en mostrador)" },
-          ].map(({ value, label }) => (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-2 text-sm"
-            >
-              <input
-                type="radio"
-                name="mode"
-                value={value}
-                defaultChecked={restaurant.mode === value}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      </div>
+      <RadioGroup
+        name="mode"
+        defaultValue={restaurant.mode ?? "table"}
+        orientation="horizontal"
+      >
+        <Label>Modo de operación</Label>
+        <Radio value="table">
+          <Radio.Control>
+            <Radio.Indicator />
+          </Radio.Control>
+          <Radio.Content>
+            <Label>Restaurante con mesas</Label>
+          </Radio.Content>
+        </Radio>
+        <Radio value="foodcourt">
+          <Radio.Control>
+            <Radio.Indicator />
+          </Radio.Control>
+          <Radio.Content>
+            <Label>Food court (retiro en mostrador)</Label>
+          </Radio.Content>
+        </Radio>
+      </RadioGroup>
 
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -288,13 +313,15 @@ export default function ProfileForm({
         </p>
       )}
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending || uploading !== null}
-        className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+        variant="primary"
+        size="md"
+        isPending={isPending}
+        isDisabled={isPending || uploading !== null}
       >
         {isPending ? "Guardando..." : "Guardar cambios"}
-      </button>
+      </Button>
     </form>
   );
 }

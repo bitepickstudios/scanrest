@@ -43,7 +43,9 @@ export default async function TicketPage({
       .order("sort_order", { ascending: true }),
     supabase
       .from("products")
-      .select("id, category_id, name, description, price")
+      .select(
+        "id, category_id, name, description, price, image_url, modifier_groups(*, modifiers(*))"
+      )
       .eq("restaurant_id", restaurant.id)
       .order("sort_order", { ascending: true }),
     supabase

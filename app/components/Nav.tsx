@@ -7,7 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@heroui/react";
 import { motion } from "motion/react";
 
-export default function Nav() {
+export default function Nav({ dashboardHref }: { dashboardHref?: string | null }) {
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
 
@@ -51,17 +51,28 @@ export default function Nav() {
           </a>
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/auth/login" className="hidden sm:inline-block">
-            <Button variant="ghost" size="sm">
-              Ingresar
-            </Button>
-          </Link>
-          <Link href="/auth/login">
-            <Button variant="primary" size="sm" className="px-6 py-6">
-              Empezar gratis
-              <ArrowRight size={14} />
-            </Button>
-          </Link>
+          {dashboardHref ? (
+            <Link href={dashboardHref}>
+              <Button variant="primary" size="sm" className="px-6 py-6">
+                Ir al dashboard
+                <ArrowRight size={14} />
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/auth/login" className="hidden sm:inline-block">
+                <Button variant="ghost" size="sm">
+                  Ingresar
+                </Button>
+              </Link>
+              <Link href="/auth/login">
+                <Button variant="primary" size="sm" className="px-6 py-6">
+                  Empezar gratis
+                  <ArrowRight size={14} />
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.header>

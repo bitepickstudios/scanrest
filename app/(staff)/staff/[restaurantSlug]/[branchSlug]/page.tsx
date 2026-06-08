@@ -14,7 +14,7 @@ export default async function StaffHomePage({
     branchSlug
   );
 
-  const [tablesRes, zonesRes, ordersRes] = await Promise.all([
+  const [tablesRes, zonesRes, ordersRes, sessionsRes] = await Promise.all([
     supabase
       .from("tables")
       .select("*")
@@ -31,6 +31,11 @@ export default async function StaffHomePage({
       .select("table_id, status")
       .eq("branch_id", branch.id)
       .neq("status", "delivered"),
+    supabase
+      .from("table_sessions")
+      .select("id, table_id, customer_name, party_size, opened_at, bill_requested_at, status")
+      .eq("branch_id", branch.id)
+      .in("status", ["open", "billing"]),
   ]);
 
   return (
@@ -49,6 +54,7 @@ export default async function StaffHomePage({
         tables={tablesRes.data ?? []}
         zones={zonesRes.data ?? []}
         activeOrders={(ordersRes.data ?? []) as { table_id: string | null; status: "new" | "preparing" | "ready" | "delivered" }[]}
+        sessions={(sessionsRes.data ?? []) as { id: string; table_id: string | null; customer_name: string | null; party_size: number | null; opened_at: string; bill_requested_at: string | null; status: string }[]}
       />
     </div>
   );

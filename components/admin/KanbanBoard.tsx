@@ -11,26 +11,27 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { RefreshCw } from "lucide-react";
-import { Button, SearchField } from "@heroui/react";
+import { RefreshCw, LayoutGrid, List } from "lucide-react";
+import { Button, SearchField, Tabs } from "@heroui/react";
 import SelectField from "@/components/ui/SelectField";
 import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "@/lib/actions/orders";
 import KanbanColumn from "./KanbanColumn";
 import OrderCard from "./OrderCard";
 import OrderDetailModal from "./OrderDetailModal";
+import OrdersTable from "./OrdersTable";
 import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
 
 type OrderFull = Order & {
   order_items: (OrderItem & { order_item_modifiers: OrderItemModifier[] })[];
 };
 
-const COLUMNS: { id: OrderStatus; label: string; color: string }[] = [
-  { id: "new", label: "Nuevos", color: "bg-blue-50 border-blue-200" },
-  { id: "preparing", label: "Preparando", color: "bg-amber-50 border-amber-200" },
-  { id: "ready", label: "Listos", color: "bg-green-50 border-green-200" },
-  { id: "delivered", label: "Entregados", color: "bg-neutral-50 border-neutral-200" },
-  { id: "cancelled", label: "Cancelados", color: "bg-rose-50 border-rose-200" },
+const COLUMNS: { id: OrderStatus; label: string; dot: string; color: string }[] = [
+  { id: "new", label: "Nuevos", dot: "bg-blue-500", color: "bg-neutral-50 border-neutral-200" },
+  { id: "preparing", label: "Preparando", dot: "bg-amber-500", color: "bg-neutral-50 border-neutral-200" },
+  { id: "ready", label: "Listos", dot: "bg-emerald-500", color: "bg-neutral-50 border-neutral-200" },
+  { id: "delivered", label: "Entregados", dot: "bg-neutral-400", color: "bg-neutral-50 border-neutral-200" },
+  { id: "cancelled", label: "Cancelados", dot: "bg-rose-500", color: "bg-neutral-50 border-neutral-200" },
 ];
 
 export default function KanbanBoard({
@@ -49,6 +50,7 @@ export default function KanbanBoard({
   const [isPending, startTransition] = useTransition();
   const [dateRange, setDateRange] = useState("today");
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"kanban" | "table">("kanban");
 
   const filteredOrders = useMemo(() => {
     const now = Date.now();
@@ -140,7 +142,7 @@ export default function KanbanBoard({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-100 bg-white px-6 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-2.5">
           <div className="w-64">
             <SearchField
               value={search}
@@ -168,33 +170,66 @@ export default function KanbanBoard({
             />
           </div>
           <div className="ml-auto" />
+          <Tabs
+            selectedKey={view}
+            onSelectionChange={(k) => setView(k as "kanban" | "table")}
+          >
+            <Tabs.ListContainer className="w-fit">
+              <Tabs.List
+                aria-label="Vista"
+                className="w-fit *:h-7 *:w-fit *:px-3 *:text-xs *:font-medium"
+              >
+                <Tabs.Tab id="kanban">
+                  <LayoutGrid size={12} />
+                  <span className="ml-1">Kanban</span>
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="table">
+                  <List size={12} />
+                  <span className="ml-1">Tabla</span>
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
           <Button variant="ghost" size="sm" onPress={() => router.refresh()} isDisabled={isPending}>
             <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
             Actualizar
           </Button>
         </div>
 
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto p-6">
-            {COLUMNS.map((col) => (
-              <KanbanColumn
-                key={col.id}
-                id={col.id}
-                label={col.label}
-                colorClass={col.color}
-                orders={filteredOrders.filter((o) => o.status === col.id)}
-                mode={mode}
-                onSelectOrder={setSelectedOrder}
-              />
-            ))}
-          </div>
+        {view === "kanban" ? (
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto p-6">
+              {COLUMNS.map((col) => (
+                <KanbanColumn
+                  key={col.id}
+                  id={col.id}
+                  label={col.label}
+                  dotClass={col.dot}
+                  colorClass={col.color}
+                  orders={filteredOrders.filter((o) => o.status === col.id)}
+                  mode={mode}
+                  onSelectOrder={setSelectedOrder}
+                />
+              ))}
+            </div>
 
-          <DragOverlay>
-            {activeOrder && (
-              <OrderCard order={activeOrder} mode={mode} onSelect={() => {}} isDragging />
-            )}
-          </DragOverlay>
-        </DndContext>
+            <DragOverlay>
+              {activeOrder && (
+                <OrderCard order={activeOrder} mode={mode} onSelect={() => {}} isDragging />
+              )}
+            </DragOverlay>
+          </DndContext>
+        ) : (
+          <div className="flex-1 overflow-auto p-6">
+            <OrdersTable
+              orders={filteredOrders}
+              mode={mode}
+              onSelect={setSelectedOrder}
+            />
+          </div>
+        )}
       </div>
 
       {selectedOrder && (

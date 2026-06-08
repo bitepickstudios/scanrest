@@ -38,7 +38,15 @@ function splitNode(node: ReactNode, keyPrefix: string): ReactNode[] {
   if (Array.isArray(node)) {
     return node.flatMap((n, i) => splitNode(n, `${keyPrefix}-${i}`));
   }
-  return [node];
+  return [
+    <motion.span
+      key={`${keyPrefix}-n`}
+      className="inline-block align-middle will-change-transform"
+      variants={imageVariants}
+    >
+      {node}
+    </motion.span>,
+  ];
 }
 
 const wordVariants: Variants = {
@@ -52,13 +60,20 @@ const wordVariants: Variants = {
 };
 
 const imageVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.4, rotate: -15, y: "0.4em" },
+  hidden: {
+    opacity: 0,
+    scale: 0.6,
+    rotate: -10,
+    y: "0.4em",
+    filter: "blur(10px)",
+  },
   show: {
     opacity: 1,
     scale: 1,
     rotate: 0,
     y: 0,
-    transition: { duration: 1, ease: [0.22, 1, 0.36, 1] },
+    filter: "blur(0px)",
+    transition: { duration: 1.05, ease: [0.22, 1, 0.36, 1] },
   },
 };
 

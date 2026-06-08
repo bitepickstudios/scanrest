@@ -38,26 +38,49 @@ export async function GET(request: Request) {
 
   const { data: staffRows } = await supabase
     .from("staff")
-    .select("role, restaurant_id, branch_id, restaurants(slug), branches(slug)")
+    .select("role, restaurant_id, branch_id")
     .eq("user_id", user.id)
     .eq("active", true)
     .limit(1);
 
-  const staff = staffRows?.[0] as
-    | {
-        role: "admin" | "waiter" | "superadmin";
-        restaurant_id: string;
-        branch_id: string | null;
-        restaurants: { slug: string } | null;
-        branches: { slug: string } | null;
-      }
-    | undefined;
+  const staff = staffRows?.[0];
 
-  if (staff && staff.restaurants && staff.branches) {
-    const base = staff.role === "waiter" ? "staff" : "admin";
-    return NextResponse.redirect(
-      `${origin}/${base}/${staff.restaurants.slug}/${staff.branches.slug}`
-    );
+  if (staff) {
+    const [{ data: r }, { data: b }] = await Promise.all([
+      supabase
+        .from("restaurants")
+        .select("slug")
+        .eq("id", staff.restaurant_id)
+        .maybeSingle(),
+      staff.branch_id
+        ? supabase
+            .from("branches")
+            .select("slug")
+            .eq("id", staff.branch_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null as { slug: string } | null }),
+    ]);
+
+    if (r) {
+      const base = staff.role === "waiter" ? "staff" : "admin";
+      if (b) {
+        return NextResponse.redirect(`${origin}/${base}/${r.slug}/${b.slug}`);
+      }
+      // No branch assigned: pick default for admin; waiters need branch.
+      if (staff.role !== "waiter") {
+        const { data: branches } = await supabase
+          .from("branches")
+          .select("slug, is_default")
+          .eq("restaurant_id", staff.restaurant_id)
+          .eq("active", true)
+          .order("is_default", { ascending: false })
+          .order("created_at", { ascending: true });
+        if (branches && branches.length > 0) {
+          return NextResponse.redirect(`${origin}/admin/${r.slug}/${branches[0].slug}`);
+        }
+        return NextResponse.redirect(`${origin}/admin/${r.slug}`);
+      }
+    }
   }
 
   return NextResponse.redirect(`${origin}/auth/onboarding`);

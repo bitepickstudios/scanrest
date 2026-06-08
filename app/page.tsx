@@ -22,12 +22,12 @@ import {
   Zap,
 } from "lucide-react";
 import { Button, Chip } from "@heroui/react";
+import { createClient } from "@/lib/supabase/server";
 import HeroWizard from "@/app/components/HeroWizard";
 import Nav from "@/app/components/Nav";
 import Reveal from "@/app/components/Reveal";
 import RevealHeading from "@/app/components/RevealHeading";
 import StaggerGrid from "@/app/components/StaggerGrid";
-import InlinePop from "@/app/components/InlinePop";
 
 export const metadata = {
   title: "ScanRest — La forma más simple de vender desde tu salón",
@@ -35,10 +35,11 @@ export const metadata = {
     "Tus clientes escanean, piden y reciben. Sin apps. Sin comisiones por pedido. Sin estrés.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const dashboardHref = await resolveDashboardHref();
   return (
     <main className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)]">
-      <Nav />
+      <Nav dashboardHref={dashboardHref} />
       <Hero />
       <SocialProof />
       <WhatItDoes />
@@ -50,6 +51,58 @@ export default function HomePage() {
       <Footer />
     </main>
   );
+}
+
+async function resolveDashboardHref(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: owned } = await supabase
+    .from("restaurants")
+    .select("id, slug")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true });
+
+  if (owned && owned.length > 0) {
+    if (owned.length > 1) return "/auth/select-restaurant";
+    const r = owned[0];
+    const { data: branches } = await supabase
+      .from("branches")
+      .select("slug, is_default")
+      .eq("restaurant_id", r.id)
+      .eq("active", true)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true });
+    if (branches && branches.length > 0) return `/admin/${r.slug}/${branches[0].slug}`;
+    return `/admin/${r.slug}`;
+  }
+
+  const { data: staffRows } = await supabase
+    .from("staff")
+    .select("role, restaurant_id, branch_id")
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .limit(1);
+  const staff = staffRows?.[0];
+  if (!staff) return "/auth/onboarding";
+
+  const { data: r } = await supabase
+    .from("restaurants")
+    .select("slug")
+    .eq("id", staff.restaurant_id)
+    .maybeSingle();
+  if (!r) return "/auth/onboarding";
+  const base = staff.role === "waiter" ? "staff" : "admin";
+  if (staff.branch_id) {
+    const { data: b } = await supabase
+      .from("branches")
+      .select("slug")
+      .eq("id", staff.branch_id)
+      .maybeSingle();
+    if (b) return `/${base}/${r.slug}/${b.slug}`;
+  }
+  return `/admin/${r.slug}`;
 }
 
 function Hero() {
@@ -163,25 +216,21 @@ function WhatItDoes() {
           stagger={0.05}
         >
           Cargás tu menú{" "}
-          <InlinePop delay={0.15}>
-            <Image
-              src="/burger2.png"
-              alt="Burger"
-              width={96}
-              height={96}
-              className="inline-block w-12 h-auto align-middle sm:w-16 md:w-20"
-            />
-          </InlinePop>{" "}
+          <Image
+            src="/burger2.png"
+            alt="Burger"
+            width={96}
+            height={96}
+            className="inline-block w-12 h-auto align-middle sm:w-16 md:w-20"
+          />{" "}
           imprimís los QR y empezás a recibir pedidos{" "}
-          <InlinePop delay={0.55}>
-            <Image
-              src="/orders.png"
-              alt="Orders"
-              width={96}
-              height={96}
-              className="inline-block w-11 h-auto align-middle sm:w-16 md:w-20"
-            />
-          </InlinePop>
+          <Image
+            src="/orders.png"
+            alt="Orders"
+            width={96}
+            height={96}
+            className="inline-block w-11 h-auto align-middle sm:w-16 md:w-20"
+          />
           .
         </RevealHeading>
         <Reveal delay={0.3}>

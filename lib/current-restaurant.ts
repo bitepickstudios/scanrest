@@ -101,7 +101,6 @@ export async function getRestaurantWithBranch(
     .from("restaurants")
     .select("*")
     .eq("slug", restaurantSlug)
-    .eq("owner_id", user.id)
     .single();
 
   if (!restaurant) redirect("/auth/select-restaurant");
@@ -113,7 +112,23 @@ export async function getRestaurantWithBranch(
     .eq("slug", branchSlug)
     .single();
 
-  if (!branch) redirect(`/admin/${restaurant.slug}`);
+  if (!branch) redirect("/auth/select-restaurant");
+
+  // Authorize: owner OR active staff (waiter requires matching branch).
+  if (restaurant.owner_id !== user.id) {
+    const { data: staffRow } = await supabase
+      .from("staff")
+      .select("role, branch_id")
+      .eq("user_id", user.id)
+      .eq("restaurant_id", restaurant.id)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (!staffRow) redirect("/auth/select-restaurant");
+    if (staffRow.role === "waiter" && staffRow.branch_id !== branch.id) {
+      redirect("/auth/select-restaurant");
+    }
+  }
 
   return { supabase, user, restaurant, branch };
 }

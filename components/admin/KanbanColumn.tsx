@@ -12,6 +12,7 @@ export default function KanbanColumn({
   id,
   label,
   colorClass,
+  dotClass,
   orders,
   mode,
   onSelectOrder,
@@ -19,6 +20,7 @@ export default function KanbanColumn({
   id: OrderStatus;
   label: string;
   colorClass: string;
+  dotClass?: string;
   orders: OrderFull[];
   mode: "table" | "foodcourt";
   onSelectOrder: (order: OrderFull) => void;
@@ -29,7 +31,12 @@ export default function KanbanColumn({
     <div className="flex h-full min-h-0 w-72 shrink-0 flex-col">
       {/* Column header */}
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-neutral-700">{label}</h3>
+        <div className="flex items-center gap-2">
+          {dotClass && (
+            <span className={`inline-block h-2 w-2 rounded-full ${dotClass}`} />
+          )}
+          <h3 className="text-sm font-semibold text-neutral-700">{label}</h3>
+        </div>
         <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-600">
           {orders.length}
         </span>

@@ -29,7 +29,7 @@ export default async function TablesPage({
     supabase
       .from("table_sessions")
       .select(
-        `id, status, opened_at, closed_at, customer_name, table_id,
+        `id, status, opened_at, closed_at, customer_name, table_id, party_size,
          orders(id, order_number, status, customer_name, created_at,
            order_items(id, product_name, quantity, unit_price,
              order_item_modifiers(price_delta)))`
@@ -54,7 +54,7 @@ export default async function TablesPage({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-neutral-200 bg-white px-8 py-5">
+      <div className="px-8 py-5">
         <h1 className="text-xl font-semibold text-neutral-800">
           {restaurant.mode === "table" ? "Mesas" : "QR del local"}
         </h1>

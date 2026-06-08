@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentRestaurant } from "@/lib/current-restaurant";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/database.types";
 
 type StaffRole = Database["public"]["Enums"]["staff_role"];
@@ -42,8 +43,9 @@ async function assertStaffOwnership(
   return data as { id: string; branch_id: string | null };
 }
 
-export async function inviteStaff(input: {
-  userId: string;
+export async function createStaffAccount(input: {
+  email: string;
+  password: string;
   role: StaffRole;
   branchId?: string | null;
   displayName?: string | null;
@@ -51,29 +53,64 @@ export async function inviteStaff(input: {
 }) {
   const { supabase, restaurant } = await getRestaurant();
 
-  if (!input.userId?.trim()) throw new Error("userId es obligatorio.");
+  const email = input.email?.trim().toLowerCase();
+  const password = input.password ?? "";
+  if (!email) throw new Error("Email obligatorio.");
+  if (password.length < 6) throw new Error("Contraseña mínima 6 caracteres.");
 
   if (input.branchId) {
     await assertBranchOwnership(supabase, input.branchId, restaurant.id);
   }
 
-  // Verify the user exists in the system (public profile or auth lookup).
-  // We cannot call supabase.auth.admin.listUsers without service role.
-  // The UI is responsible for resolving a registered userId before calling this action.
-  // If the user has not signed up yet, this insert will fail on the FK constraint.
-  const { data: existing } = await supabase
+  const admin = createAdminClient();
+
+  // Find existing auth user by email (reuse across restaurants).
+  let userId: string | null = null;
+  let createdNewUser = false;
+
+  const { data: pageOne, error: listErr } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+  if (listErr) throw new Error(listErr.message);
+  const existingUser = pageOne.users.find(
+    (u) => u.email?.toLowerCase() === email
+  );
+
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: input.displayName ? { display_name: input.displayName } : undefined,
+    });
+    if (createErr) throw new Error(createErr.message);
+    if (!created.user) throw new Error("No se pudo crear el usuario.");
+    userId = created.user.id;
+    createdNewUser = true;
+  }
+
+  // Prevent duplicate staff row for this restaurant.
+  const { data: dup } = await supabase
     .from("staff")
     .select("id")
-    .eq("user_id", input.userId)
+    .eq("user_id", userId)
     .eq("restaurant_id", restaurant.id)
     .maybeSingle();
 
-  if (existing) throw new Error("Este usuario ya es miembro del staff de este restaurante.");
+  if (dup) {
+    if (createdNewUser) {
+      await admin.auth.admin.deleteUser(userId);
+    }
+    throw new Error("Este usuario ya es miembro del staff de este restaurante.");
+  }
 
   const { data: newStaff, error } = await supabase
     .from("staff")
     .insert({
-      user_id: input.userId,
+      user_id: userId,
       restaurant_id: restaurant.id,
       role: input.role,
       branch_id: input.branchId ?? null,
@@ -83,14 +120,18 @@ export async function inviteStaff(input: {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (createdNewUser) {
+      await admin.auth.admin.deleteUser(userId);
+    }
+    throw new Error(error.message);
+  }
 
   if (input.zoneIds && input.zoneIds.length > 0) {
     if (!input.branchId) {
       throw new Error("Se requiere branchId para asignar zonas.");
     }
 
-    // Validate all zones belong to the branch.
     const { data: validZones, error: zonesError } = await supabase
       .from("zones")
       .select("id")
@@ -137,6 +178,23 @@ export async function deactivateStaff(staffId: string) {
   const { error } = await supabase
     .from("staff")
     .update({ active: false })
+    .eq("id", staffId)
+    .eq("restaurant_id", restaurant.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
+}
+
+export async function deleteStaff(staffId: string) {
+  const { supabase, restaurant } = await getRestaurant();
+
+  await assertStaffOwnership(supabase, staffId, restaurant.id);
+
+  await supabase.from("staff_zones").delete().eq("staff_id", staffId);
+
+  const { error } = await supabase
+    .from("staff")
+    .delete()
     .eq("id", staffId)
     .eq("restaurant_id", restaurant.id);
 

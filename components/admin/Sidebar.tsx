@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeftRight, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Restaurant } from "@/lib/types";
-import { Button, Chip } from "@heroui/react";
+import { Avatar, Badge, Button, Chip } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import BranchSwitcher, { type BranchLite } from "./BranchSwitcher";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
@@ -25,7 +24,7 @@ export default function Sidebar({
   defaultBranchSlug,
   branches,
 }: {
-  restaurant: Pick<Restaurant, "name" | "slug">;
+  restaurant: Pick<Restaurant, "name" | "slug" | "logo_url">;
   ownedCount: number;
   defaultBranchSlug?: string;
   branches: BranchLite[];
@@ -71,17 +70,23 @@ export default function Sidebar({
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-neutral-200 bg-white">
       <div className="border-b border-neutral-100 px-4 py-5">
-        <Image
-          src="/scanrest.svg"
-          alt="ScanRest"
-          width={2051}
-          height={437}
-          priority
-          className="h-5 w-auto"
-        />
-        <p className="mt-2 truncate text-sm font-semibold text-neutral-800">
-          {restaurant.name}
-        </p>
+        <div className="flex items-center gap-2.5">
+          <Avatar className="size-9 rounded-lg ring-1 ring-neutral-200">
+            {restaurant.logo_url && (
+              <Avatar.Image
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                className="rounded-lg"
+              />
+            )}
+            <Avatar.Fallback className="rounded-lg bg-neutral-900 text-sm font-bold text-white">
+              {restaurant.name.charAt(0).toUpperCase()}
+            </Avatar.Fallback>
+          </Avatar>
+          <p className="flex-1 truncate text-base font-semibold text-neutral-900">
+            {restaurant.name}
+          </p>
+        </div>
         {ownedCount > 1 && (
           <Link
             href="/auth/select-restaurant"
@@ -118,6 +123,26 @@ export default function Sidebar({
                 size: "sm",
                 fullWidth: true,
               });
+              if (item.comingSoon) {
+                return (
+                  <div
+                    key={item.key}
+                    aria-disabled
+                    className={`${linkClass} justify-start gap-2 px-3 text-sm font-medium opacity-50 cursor-not-allowed`}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                    <Badge
+                      color="accent"
+                      size="sm"
+                      variant="soft"
+                      className="!static !translate-x-0 !translate-y-0"
+                    >
+                      Próximamente
+                    </Badge>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={item.key}

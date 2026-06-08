@@ -2,8 +2,20 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Minus, Search, Trash2, Check } from "lucide-react";
-import { Button } from "@heroui/react";
+import { ArrowLeft, Plus, Trash2, Check } from "lucide-react";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Input,
+  Label,
+  NumberField,
+  SearchField,
+  Tabs,
+  TextArea,
+  TextField,
+} from "@heroui/react";
+import StaffAlert from "@/components/staff/ui/StaffAlert";
 import { createWaiterOrder } from "@/lib/actions/waiter-orders";
 
 type Category = { id: string; name: string };
@@ -49,7 +61,7 @@ export default function OrderTaker({
   );
   const [lines, setLines] = useState<CartLine[]>([]);
   const [step, setStep] = useState<"menu" | "checkout">("menu");
-  const [customerName, setCustomerName] = useState(table ? "" : "");
+  const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [wantsInvoice, setWantsInvoice] = useState(false);
   const [ruc, setRuc] = useState("");
@@ -105,10 +117,10 @@ export default function OrderTaker({
     });
   }
 
-  function changeQty(key: string, delta: number) {
+  function setQty(key: string, qty: number) {
     setLines((prev) =>
       prev
-        .map((l) => (l.key === key ? { ...l, quantity: l.quantity + delta } : l))
+        .map((l) => (l.key === key ? { ...l, quantity: qty } : l))
         .filter((l) => l.quantity > 0)
     );
   }
@@ -159,9 +171,6 @@ export default function OrderTaker({
   }
 
   if (step === "checkout") {
-    const inputClass =
-      "w-full rounded-xl border border-neutral-200 px-4 py-3 text-base outline-none focus:border-neutral-400";
-
     return (
       <div className="flex min-h-screen flex-col bg-neutral-50">
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
@@ -178,74 +187,76 @@ export default function OrderTaker({
         </header>
 
         <div className="flex-1 space-y-4 p-4 sm:p-6">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nombre *</label>
-            <input
-              autoFocus
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className={inputClass}
-              placeholder="Quién pidió"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Teléfono</label>
-            <input
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className={inputClass}
-              placeholder="+595..."
-              inputMode="tel"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Notas del pedido</label>
-            <textarea
-              value={orderNotes}
-              onChange={(e) => setOrderNotes(e.target.value)}
-              className={`${inputClass} min-h-[80px]`}
-              placeholder="Sin cebolla, alergias, etc."
-            />
-          </div>
+          <TextField
+            isRequired
+            value={customerName}
+            onChange={setCustomerName}
+            autoFocus
+            className="w-full"
+          >
+            <Label>Nombre</Label>
+            <Input placeholder="Quién pidió" />
+          </TextField>
 
-          <label className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
-            <input
-              type="checkbox"
-              checked={wantsInvoice}
-              onChange={(e) => setWantsInvoice(e.target.checked)}
-              className="h-5 w-5"
-            />
-            <span className="text-sm font-medium">¿Factura?</span>
-          </label>
+          <TextField
+            value={customerPhone}
+            onChange={setCustomerPhone}
+            className="w-full"
+          >
+            <Label>Teléfono</Label>
+            <Input placeholder="+595..." inputMode="tel" />
+          </TextField>
+
+          <TextField
+            value={orderNotes}
+            onChange={setOrderNotes}
+            className="w-full"
+          >
+            <Label>Notas del pedido</Label>
+            <TextArea rows={3} placeholder="Sin cebolla, alergias, etc." />
+          </TextField>
+
+          <Card variant="default">
+            <Card.Content className="!p-4">
+              <Checkbox
+                id="wants-invoice"
+                isSelected={wantsInvoice}
+                onChange={setWantsInvoice}
+              >
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+                <Checkbox.Content>
+                  <Label htmlFor="wants-invoice">¿Factura?</Label>
+                </Checkbox.Content>
+              </Checkbox>
+            </Card.Content>
+          </Card>
 
           {wantsInvoice && (
             <>
-              <div>
-                <label className="mb-1 block text-sm font-medium">RUC *</label>
-                <input
-                  value={ruc}
-                  onChange={(e) => setRuc(e.target.value)}
-                  className={inputClass}
-                  placeholder="80012345-6"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Razón social *</label>
-                <input
-                  value={razonSocial}
-                  onChange={(e) => setRazonSocial(e.target.value)}
-                  className={inputClass}
-                  placeholder="Empresa SA"
-                />
-              </div>
+              <TextField
+                isRequired
+                value={ruc}
+                onChange={setRuc}
+                className="w-full"
+              >
+                <Label>RUC</Label>
+                <Input placeholder="80012345-6" />
+              </TextField>
+              <TextField
+                isRequired
+                value={razonSocial}
+                onChange={setRazonSocial}
+                className="w-full"
+              >
+                <Label>Razón social</Label>
+                <Input placeholder="Empresa SA" />
+              </TextField>
             </>
           )}
 
-          {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </p>
-          )}
+          {error && <StaffAlert status="danger" description={error} />}
         </div>
 
         <div className="sticky bottom-0 border-t border-neutral-200 bg-white p-4">
@@ -291,41 +302,40 @@ export default function OrderTaker({
               {table ? table.label : "Para llevar"}
             </h1>
             {table?.capacity && (
-              <p className="text-xs text-neutral-500">
-                Cap. {table.capacity}
-              </p>
+              <p className="text-xs text-neutral-500">Cap. {table.capacity}</p>
             )}
           </div>
         </div>
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar producto..."
-            className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-neutral-300 focus:bg-white"
-          />
-        </div>
-        {!search && (
-          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto scrollbar-hide">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setActiveCat(c.id)}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  activeCat === c.id
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
+
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          aria-label="Buscar producto"
+        >
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input placeholder="Buscar producto..." />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
+
+        {!search && categories.length > 0 && (
+          <Tabs
+            selectedKey={activeCat ?? undefined}
+            onSelectionChange={(k) => setActiveCat(String(k))}
+            className="mt-3"
+          >
+            <Tabs.ListContainer className="overflow-x-auto scrollbar-hide">
+              <Tabs.List aria-label="Categorías" className="w-max">
+                {categories.map((c) => (
+                  <Tabs.Tab key={c.id} id={c.id}>
+                    {c.name}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         )}
       </header>
 
@@ -383,27 +393,19 @@ export default function OrderTaker({
                       ₲ {l.unitPrice.toLocaleString("es-PY")} c/u
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => changeQty(l.key, -1)}
-                    aria-label="-1"
+                  <NumberField
+                    value={l.quantity}
+                    onChange={(n) => setQty(l.key, n ?? 0)}
+                    minValue={0}
+                    step={1}
+                    aria-label={`Cantidad ${l.productName}`}
                   >
-                    <Minus size={14} />
-                  </Button>
-                  <span className="w-6 text-center text-sm font-semibold">
-                    {l.quantity}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => changeQty(l.key, 1)}
-                    aria-label="+1"
-                  >
-                    <Plus size={14} />
-                  </Button>
+                    <NumberField.Group className="w-28">
+                      <NumberField.DecrementButton />
+                      <NumberField.Input className="w-10 text-center" />
+                      <NumberField.IncrementButton />
+                    </NumberField.Group>
+                  </NumberField>
                   <Button
                     variant="danger-soft"
                     size="sm"

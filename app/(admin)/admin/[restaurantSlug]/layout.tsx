@@ -18,7 +18,7 @@ export default async function AdminLayout({
   const { restaurantSlug } = await params;
   const { restaurant } = await getRestaurantBySlug(
     restaurantSlug,
-    "id, name, slug"
+    "id, name, slug, logo_url"
   );
   const { restaurants } = await listOwnedRestaurants();
   const defaultBranch = await getDefaultBranch(restaurant.id);

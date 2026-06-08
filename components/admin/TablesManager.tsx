@@ -13,8 +13,17 @@ import {
   CheckCircle2,
   Clock,
   Users,
+  LayoutGrid,
+  List,
+  Power,
+  PlayCircle,
+  ShoppingBag,
+  MoreHorizontal,
+  Minus,
 } from "lucide-react";
-import { Switch, Button, Chip, Tabs } from "@heroui/react";
+import Link from "next/link";
+import { Switch, Button, Chip, Tabs, Modal, SearchField, TextField, Input, Label } from "@heroui/react";
+import { openTableSessionAsWaiter } from "@/lib/actions/table-sessions";
 import SelectField from "@/components/ui/SelectField";
 import ZonesManager from "@/components/admin/ZonesManager";
 import QRCode from "qrcode";
@@ -55,6 +64,7 @@ type OpenSession = {
   closed_at: string | null;
   customer_name: string | null;
   table_id: string;
+  party_size?: number | null;
   orders: SessionOrder[];
 };
 
@@ -121,6 +131,9 @@ export default function TablesManager({
   const [editing, setEditing] = useState<Table | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Table | null>(null);
+  const [actionsFor, setActionsFor] = useState<Table | null>(null);
+  const [tablesView, setTablesView] = useState<"grid" | "list">("grid");
+  const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -159,6 +172,26 @@ export default function TablesManager({
     for (const s of openSessions) map.set(s.table_id, s);
     return map;
   }, [openSessions]);
+
+  const filteredTables = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return initial;
+    return initial.filter((t) => {
+      const label = (t.label ?? "").toLowerCase();
+      const num = String(t.number ?? "");
+      const zoneName = (
+        zones.find((z) => z.id === t.zone_id)?.name ?? ""
+      ).toLowerCase();
+      const session = sessionByTable.get(t.id);
+      const customer = (session?.customer_name ?? "").toLowerCase();
+      return (
+        label.includes(q) ||
+        num.includes(q) ||
+        zoneName.includes(q) ||
+        customer.includes(q)
+      );
+    });
+  }, [initial, search, zones, sessionByTable]);
 
   const branchPath = branchSlug ? `/${branchSlug}` : "";
 
@@ -245,6 +278,44 @@ export default function TablesManager({
                 <Download size={14} /> Descargar QRs
               </Button>
             )}
+            <div className="w-64">
+              <SearchField
+                value={search}
+                onChange={setSearch}
+                aria-label="Buscar mesas"
+                fullWidth
+              >
+                <SearchField.Group>
+                  <SearchField.SearchIcon />
+                  <SearchField.Input placeholder="Buscar mesa, zona, cliente..." />
+                  <SearchField.ClearButton />
+                </SearchField.Group>
+              </SearchField>
+            </div>
+            <div className="ml-auto">
+              <Tabs
+                selectedKey={tablesView}
+                onSelectionChange={(k) => setTablesView(k as "grid" | "list")}
+              >
+                <Tabs.ListContainer className="w-fit">
+                  <Tabs.List
+                    aria-label="Vista de mesas"
+                    className="w-fit *:h-7 *:w-fit *:px-3 *:text-xs *:font-medium"
+                  >
+                    <Tabs.Tab id="grid">
+                      <LayoutGrid size={12} />
+                      <span className="ml-1">Grid</span>
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id="list">
+                      <List size={12} />
+                      <span className="ml-1">Lista</span>
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                  </Tabs.List>
+                </Tabs.ListContainer>
+              </Tabs>
+            </div>
           </div>
 
           {initial.length === 0 ? (
@@ -253,33 +324,36 @@ export default function TablesManager({
                 Sin mesas aún. Agregá la cantidad que tenés.
               </p>
             </div>
+          ) : tablesView === "grid" ? (
+            filteredTables.length === 0 ? (
+              <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-neutral-200">
+                <p className="text-sm text-neutral-400">
+                  Sin resultados para &quot;{search}&quot;.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredTables.map((table) => (
+                  <TableCard
+                    key={table.id}
+                    table={table}
+                    zoneName={zones.find((z) => z.id === table.zone_id)?.name ?? null}
+                    session={sessionByTable.get(table.id) ?? null}
+                    branchId={branchId}
+                    restaurantSlug={restaurantSlug}
+                    branchSlug={branchSlug ?? ""}
+                    onOpen={() => setActionsFor(table)}
+                  />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {initial.map((table) => (
-                <TableCard
-                  key={table.id}
-                  table={table}
-                  zoneName={zones.find((z) => z.id === table.zone_id)?.name ?? null}
-                  session={sessionByTable.get(table.id) ?? null}
-                  url={typeof window !== "undefined" ? getQrUrl(table) : ""}
-                  restaurantSlug={restaurantSlug}
-                  branchSlug={branchSlug ?? ""}
-                  onDownload={() =>
-                    downloadQR(
-                      typeof window !== "undefined" ? getQrUrl(table) : "",
-                      `mesa-${table.number}`
-                    )
-                  }
-                  onDelete={() => setDeleting(table)}
-                  onToggle={() =>
-                    startTransition(async () => {
-                      await toggleTableActive(table.id, !table.active);
-                    })
-                  }
-                  onEdit={() => setEditing(table)}
-                />
-              ))}
-            </div>
+            <TablesListView
+              tables={filteredTables}
+              zones={zones}
+              sessionByTable={sessionByTable}
+              onOpen={(t) => setActionsFor(t)}
+            />
           )}
         </Tabs.Panel>
 
@@ -312,7 +386,288 @@ export default function TablesManager({
       {deleting && (
         <DeleteTableModal table={deleting} onClose={() => setDeleting(null)} />
       )}
+      {actionsFor && (
+        <TableActionsModal
+          table={actionsFor}
+          session={sessionByTable.get(actionsFor.id) ?? null}
+          zoneName={
+            zones.find((z) => z.id === actionsFor.zone_id)?.name ?? null
+          }
+          restaurantSlug={restaurantSlug}
+          branchSlug={branchSlug ?? ""}
+          onClose={() => setActionsFor(null)}
+          onEdit={() => {
+            setEditing(actionsFor);
+            setActionsFor(null);
+          }}
+          onDelete={() => {
+            setDeleting(actionsFor);
+            setActionsFor(null);
+          }}
+          onDownloadQR={() =>
+            downloadQR(
+              typeof window !== "undefined" ? getQrUrl(actionsFor) : "",
+              `mesa-${actionsFor.number}`
+            )
+          }
+        />
+      )}
     </div>
+  );
+}
+
+function TablesListView({
+  tables,
+  zones,
+  sessionByTable,
+  onOpen,
+}: {
+  tables: Table[];
+  zones: ZoneOption[];
+  sessionByTable: Map<string, OpenSession>;
+  onOpen: (t: Table) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <table className="w-full text-sm">
+        <thead className="bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
+          <tr>
+            <th className="px-4 py-3">Mesa</th>
+            <th className="px-4 py-3">Zona</th>
+            <th className="px-4 py-3">Capacidad</th>
+            <th className="px-4 py-3">Estado</th>
+            <th className="px-4 py-3">Sesión actual</th>
+            <th className="px-4 py-3 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-100">
+          {tables.map((t) => {
+            const s = sessionByTable.get(t.id) ?? null;
+            const total = s ? sessionTotal(s) : 0;
+            const zoneName =
+              zones.find((z) => z.id === t.zone_id)?.name ?? "—";
+            return (
+              <tr
+                key={t.id}
+                className="cursor-pointer hover:bg-neutral-50"
+                onClick={() => onOpen(t)}
+              >
+                <td className="px-4 py-3 font-medium text-neutral-900">
+                  {t.label ?? `Mesa ${t.number}`}
+                </td>
+                <td className="px-4 py-3 text-neutral-700">{zoneName}</td>
+                <td className="px-4 py-3 text-neutral-700 tabular-nums">
+                  {t.capacity ?? 4}
+                </td>
+                <td className="px-4 py-3">
+                  {s ? (
+                    s.status === "billing" ? (
+                      <Chip color="warning" variant="soft" size="sm">
+                        <Chip.Label>Facturando</Chip.Label>
+                      </Chip>
+                    ) : (
+                      <Chip color="success" variant="soft" size="sm">
+                        <Chip.Label>Ocupada</Chip.Label>
+                      </Chip>
+                    )
+                  ) : t.active ? (
+                    <Chip color="default" variant="soft" size="sm">
+                      <Chip.Label>Disponible</Chip.Label>
+                    </Chip>
+                  ) : (
+                    <Chip color="default" variant="soft" size="sm">
+                      <Chip.Label>Inactiva</Chip.Label>
+                    </Chip>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-neutral-700">
+                  {s ? s.customer_name ?? "—" : "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">
+                  {s ? `Gs. ${total.toLocaleString("es-PY")}` : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TableActionsModal({
+  table,
+  session,
+  zoneName,
+  restaurantSlug,
+  branchSlug,
+  onClose,
+  onEdit,
+  onDelete,
+  onDownloadQR,
+}: {
+  table: Table;
+  session: OpenSession | null;
+  zoneName: string | null;
+  restaurantSlug: string;
+  branchSlug: string;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDownloadQR: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const occupied = !!session;
+  const billing = session?.status === "billing";
+
+  return (
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Modal.Container>
+        <Modal.Dialog className="sm:max-w-md">
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>
+              {table.label ?? `Mesa ${table.number}`}
+            </Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="space-y-4">
+            <div className="rounded-xl bg-neutral-50 p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-neutral-700">
+                {zoneName && (
+                  <span>
+                    Zona: <span className="font-medium">{zoneName}</span>
+                  </span>
+                )}
+                <span>
+                  Capacidad:{" "}
+                  <span className="font-medium">{table.capacity ?? 4}</span>
+                </span>
+                <span className="ml-auto">
+                  {occupied ? (
+                    billing ? (
+                      <Chip color="warning" variant="soft" size="sm">
+                        <Chip.Label>Facturando</Chip.Label>
+                      </Chip>
+                    ) : (
+                      <Chip color="success" variant="soft" size="sm">
+                        <Chip.Label>Ocupada</Chip.Label>
+                      </Chip>
+                    )
+                  ) : table.active ? (
+                    <Chip color="default" variant="soft" size="sm">
+                      <Chip.Label>Disponible</Chip.Label>
+                    </Chip>
+                  ) : (
+                    <Chip color="default" variant="soft" size="sm">
+                      <Chip.Label>Inactiva</Chip.Label>
+                    </Chip>
+                  )}
+                </span>
+              </div>
+              {session && (
+                <p className="mt-2 text-xs text-neutral-500">
+                  Cliente:{" "}
+                  <span className="font-medium text-neutral-700">
+                    {session.customer_name ?? "—"}
+                  </span>{" "}
+                  · Total{" "}
+                  <span className="font-medium text-neutral-700 tabular-nums">
+                    Gs. {sessionTotal(session).toLocaleString("es-PY")}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {session && !billing && (
+                <Button
+                  variant="outline"
+                  onPress={() =>
+                    startTransition(async () => {
+                      await markSessionBilling(
+                        session.id,
+                        restaurantSlug,
+                        branchSlug
+                      );
+                      onClose();
+                    })
+                  }
+                  isDisabled={isPending}
+                  className="justify-center gap-1.5"
+                >
+                  <Receipt size={14} /> Marcar para cobrar
+                </Button>
+              )}
+              {session && (
+                <Button
+                  variant="primary"
+                  onPress={() =>
+                    startTransition(async () => {
+                      await closeTableSession(
+                        session.id,
+                        restaurantSlug,
+                        branchSlug
+                      );
+                      onClose();
+                    })
+                  }
+                  isDisabled={isPending}
+                  className="justify-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Liberar mesa
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onPress={() =>
+                  startTransition(async () => {
+                    await toggleTableActive(table.id, !table.active);
+                  })
+                }
+                isDisabled={isPending || occupied}
+                className="justify-center gap-1.5"
+              >
+                <Power size={14} />
+                {table.active ? "Deshabilitar" : "Habilitar"}
+              </Button>
+              <Button
+                variant="outline"
+                onPress={onEdit}
+                className="justify-center gap-1.5"
+              >
+                <Pencil size={14} /> Editar datos
+              </Button>
+              <Button
+                variant="outline"
+                onPress={onDownloadQR}
+                className="justify-center gap-1.5"
+              >
+                <Download size={14} /> Descargar QR
+              </Button>
+              <Button
+                variant="danger-soft"
+                onPress={onDelete}
+                isDisabled={occupied}
+                className="justify-center gap-1.5"
+              >
+                <Trash2 size={14} /> Eliminar
+              </Button>
+            </div>
+            {occupied && (
+              <p className="text-xs text-neutral-500">
+                Algunas acciones quedan deshabilitadas mientras la mesa está
+                ocupada.
+              </p>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="ghost" onPress={onClose}>
+              Cerrar
+            </Button>
+          </Modal.Footer>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 
@@ -320,26 +675,21 @@ function TableCard({
   table,
   zoneName,
   session,
-  url,
+  onOpen,
+  branchId,
   restaurantSlug,
   branchSlug,
-  onDownload,
-  onDelete,
-  onToggle,
-  onEdit,
 }: {
   table: Table;
   zoneName: string | null;
   session: OpenSession | null;
-  url: string;
+  onOpen: () => void;
+  branchId: string;
   restaurantSlug: string;
   branchSlug: string;
-  onDownload: () => void;
-  onDelete: () => void;
-  onToggle: () => void;
-  onEdit: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [quickOpen, setQuickOpen] = useState(false);
   const occupied = !!session;
   const billing = session?.status === "billing";
 
@@ -350,207 +700,319 @@ function TableCard({
     : 0;
   const openedAt = session ? new Date(session.opened_at) : null;
 
+  const orderHref = `/staff/${restaurantSlug}/${branchSlug}/order/new?table=${table.id}`;
+
+  // Status accent — thin top bar, no heavy rings
+  const accent = billing
+    ? "before:bg-amber-400"
+    : occupied
+    ? "before:bg-emerald-500"
+    : table.active
+    ? "before:bg-neutral-300"
+    : "before:bg-neutral-200";
+
+  const cardCls = `group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-white text-left transition-all hover:-translate-y-0.5 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-1 ${accent} ${
+    table.active ? "border-neutral-200" : "border-neutral-100 opacity-70"
+  }`;
+
+  function stop(e: React.MouseEvent | React.PointerEvent) {
+    e.stopPropagation();
+  }
+
   return (
-    <div
-      className={`flex flex-col rounded-2xl border bg-white p-4 transition-colors ${
-        billing
-          ? "border-amber-300 ring-1 ring-amber-200"
-          : occupied
-          ? "border-emerald-300 ring-1 ring-emerald-200"
-          : table.active
-          ? "border-neutral-200"
-          : "border-neutral-100 opacity-60"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-neutral-900">
-            {table.label}
-          </p>
-          <p className="text-xs text-neutral-500">
-            {zoneName ? `${zoneName} · ` : ""}
-            <Users size={11} className="inline -mt-0.5" /> {table.capacity ?? 4}
-          </p>
-        </div>
-        {occupied ? (
-          billing ? (
-            <Chip color="warning" variant="soft" size="sm">
-              <Chip.Label>Facturando</Chip.Label>
+    <>
+      <div className={cardCls}>
+        {/* Header: clickable opens actions modal */}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex items-start justify-between gap-2 p-4 pb-3 text-left"
+        >
+          <div className="min-w-0">
+            <p className="truncate font-[family-name:var(--font-heading)] text-xl tracking-tight text-neutral-900">
+              {table.label ?? `Mesa ${table.number}`}
+            </p>
+            <p className="mt-0.5 flex items-center gap-2 text-xs text-neutral-500">
+              {zoneName && <span>{zoneName}</span>}
+              {zoneName && <span className="text-neutral-300">·</span>}
+              <span className="inline-flex items-center gap-1">
+                <Users size={11} />
+                {(session?.party_size as number | undefined) ?? table.capacity ?? 4}
+              </span>
+            </p>
+          </div>
+          {occupied ? (
+            billing ? (
+              <Chip color="warning" variant="soft" size="sm">
+                <Chip.Label>Facturando</Chip.Label>
+              </Chip>
+            ) : (
+              <Chip color="success" variant="soft" size="sm">
+                <Chip.Label>Ocupada</Chip.Label>
+              </Chip>
+            )
+          ) : table.active ? (
+            <Chip color="default" variant="soft" size="sm">
+              <Chip.Label>Disponible</Chip.Label>
             </Chip>
           ) : (
-            <Chip color="success" variant="soft" size="sm">
-              <Chip.Label>Ocupada</Chip.Label>
+            <Chip color="default" variant="soft" size="sm">
+              <Chip.Label>Deshabilitada</Chip.Label>
             </Chip>
-          )
-        ) : (
-          <Chip color="default" variant="soft" size="sm">
-            <Chip.Label>Disponible</Chip.Label>
-          </Chip>
-        )}
-      </div>
+          )}
+        </button>
 
-      <div className="mt-3 min-h-[140px] flex-1">
-        {session ? (
-          <div className="flex h-full flex-col gap-2">
-            <div className="rounded-xl bg-neutral-50 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-neutral-400">
-                Cliente
-              </p>
-              <p className="truncate text-sm font-semibold text-neutral-800">
-                {session.customer_name ?? "—"}
-              </p>
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-neutral-500">
-                <Clock size={11} /> Abrió{" "}
-                {openedAt?.toLocaleTimeString("es-PY", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                · {openedAt ? formatDuration(Date.now() - openedAt.getTime()) : ""}
-              </p>
-            </div>
-            <div className="space-y-1">
-              {session.orders
-                .filter((o) => o.status !== "cancelled")
-                .slice(0, 3)
-                .map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex items-center justify-between rounded-lg border border-neutral-100 px-2.5 py-1.5 text-xs"
-                  >
-                    <span className="truncate text-neutral-700">
-                      #{o.order_number} ·{" "}
-                      {o.order_items.reduce((s, it) => s + it.quantity, 0)} items
-                    </span>
-                    <span className="tabular-nums font-medium">
-                      Gs. {orderTotal(o).toLocaleString("es-PY")}
-                    </span>
-                  </div>
-                ))}
-              {orderCount > 3 && (
-                <p className="text-[11px] text-neutral-400">
-                  +{orderCount - 3} pedidos más
-                </p>
-              )}
-            </div>
-            <div className="mt-auto flex items-end justify-between border-t border-neutral-100 pt-2">
+        {/* Body */}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex-1 px-4 text-left"
+        >
+          {session ? (
+            <div className="space-y-2.5">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-neutral-400">
-                  Total mesa
+                  Cliente
                 </p>
-                <p className="text-base font-bold tabular-nums">
-                  Gs. {total.toLocaleString("es-PY")}
+                <p className="truncate text-sm font-semibold text-neutral-800">
+                  {session.customer_name ?? "—"}
                 </p>
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-neutral-500">
+                  <Clock size={11} /> Abrió{" "}
+                  {openedAt?.toLocaleTimeString("es-PY", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · {openedAt ? formatDuration(Date.now() - openedAt.getTime()) : ""}
+                </p>
+              </div>
+              <div className="flex items-end justify-between border-t border-neutral-100 pt-2.5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-400">
+                    Total
+                  </p>
+                  <p className="text-lg font-bold tabular-nums text-neutral-900">
+                    Gs. {total.toLocaleString("es-PY")}
+                  </p>
+                </div>
                 <p className="text-[11px] text-neutral-500">
-                  {orderCount} pedidos · {itemCount} items
+                  {orderCount} pedido{orderCount === 1 ? "" : "s"} · {itemCount}{" "}
+                  items
                 </p>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center rounded-xl bg-neutral-50 px-3 py-4 text-center">
-            <QrCode size={28} className="text-neutral-300" />
-            <p className="mt-2 text-xs text-neutral-400">
-              Esperando primer pedido vía QR
-            </p>
-          </div>
-        )}
-      </div>
+          ) : table.active ? (
+            <div className="flex min-h-[110px] flex-col items-center justify-center rounded-xl bg-neutral-50 px-3 py-4 text-center">
+              <QrCode size={24} className="text-neutral-300" />
+              <p className="mt-1.5 text-[11px] text-neutral-400">
+                Lista para recibir clientes
+              </p>
+            </div>
+          ) : (
+            <div className="flex min-h-[110px] flex-col items-center justify-center rounded-xl bg-neutral-50 px-3 py-4 text-center">
+              <Power size={22} className="text-neutral-300" />
+              <p className="mt-1.5 text-[11px] text-neutral-400">
+                Mesa deshabilitada
+              </p>
+            </div>
+          )}
+        </button>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-neutral-100 pt-3">
-        {session ? (
-          <>
-            {!billing && (
-              <Button
-                size="sm"
-                variant="outline"
-                onPress={() =>
-                  startTransition(async () => {
-                    await markSessionBilling(session.id, restaurantSlug, branchSlug);
-                  })
-                }
-                isDisabled={isPending}
-              >
-                <Receipt size={14} /> Pedir cuenta
-              </Button>
-            )}
+        {/* Quick actions footer — varies by state */}
+        <div
+          className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-neutral-100 p-3"
+          onPointerDown={stop}
+          onClick={stop}
+        >
+          {!table.active && (
             <Button
               size="sm"
               variant="primary"
+              fullWidth
+              isDisabled={isPending}
               onPress={() =>
                 startTransition(async () => {
-                  await closeTableSession(session.id, restaurantSlug, branchSlug);
+                  await toggleTableActive(table.id, true);
                 })
               }
-              isDisabled={isPending}
+              className="justify-center gap-1.5"
             >
-              <CheckCircle2 size={14} /> Liberar mesa
+              <Power size={13} /> Habilitar mesa
             </Button>
-            <div className="ml-auto flex items-center gap-1">
+          )}
+
+          {table.active && !session && (
+            <>
               <Button
-                variant="ghost"
                 size="sm"
-                isIconOnly
-                onPress={onEdit}
-                aria-label="Editar"
+                variant="primary"
+                fullWidth
+                onPress={() => setQuickOpen(true)}
+                className="justify-center gap-1.5"
               >
-                <Pencil size={14} />
+                <PlayCircle size={13} /> Habilitar para cliente
               </Button>
+            </>
+          )}
+
+          {session && !billing && (
+            <>
+              <Link href={orderHref} className="flex-1">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  fullWidth
+                  className="justify-center gap-1.5"
+                >
+                  <ShoppingBag size={13} /> Cargar pedido
+                </Button>
+              </Link>
               <Button
-                variant="ghost"
                 size="sm"
+                variant="outline"
                 isIconOnly
-                onPress={onDownload}
-                aria-label="Descargar QR"
+                aria-label="Más acciones"
+                onPress={onOpen}
               >
-                <Download size={14} />
+                <MoreHorizontal size={14} />
               </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <Switch
-              isSelected={table.active}
-              onChange={onToggle}
-              size="sm"
-              aria-label={table.active ? "Mesa activa" : "Mesa inactiva"}
-            >
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
-            </Switch>
-            <div className="ml-auto flex items-center gap-1">
+            </>
+          )}
+
+          {session && billing && (
+            <>
               <Button
-                variant="ghost"
                 size="sm"
-                isIconOnly
-                onPress={onEdit}
-                aria-label="Editar"
+                variant="primary"
+                fullWidth
+                className="justify-center gap-1.5"
+                onPress={onOpen}
               >
-                <Pencil size={14} />
+                <CheckCircle2 size={13} /> Liberar / Cobrar
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                isIconOnly
-                onPress={onDownload}
-                aria-label="Descargar QR"
-              >
-                <Download size={14} />
-              </Button>
-              <Button
-                variant="danger-soft"
-                size="sm"
-                isIconOnly
-                onPress={onDelete}
-                aria-label="Eliminar"
-              >
-                <Trash2 size={14} />
-              </Button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      {quickOpen && (
+        <QuickEnableModal
+          table={table}
+          branchId={branchId}
+          onClose={() => setQuickOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function QuickEnableModal({
+  table,
+  branchId,
+  onClose,
+}: {
+  table: Table;
+  branchId: string;
+  onClose: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [partySize, setPartySize] = useState<number>(table.capacity ?? 2);
+  const [customerName, setCustomerName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await openTableSessionAsWaiter({
+          branchId,
+          tableId: table.id,
+          customerName: customerName.trim() || "Walk-in",
+          partySize,
+        });
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al habilitar");
+      }
+    });
+  }
+
+  return (
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Modal.Container>
+        <Modal.Dialog className="sm:max-w-sm">
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>
+              Habilitar {table.label ?? `Mesa ${table.number}`}
+            </Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm font-medium text-neutral-700">
+                ¿Cuántas personas?
+              </p>
+              <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  isDisabled={partySize <= 1}
+                  onPress={() => setPartySize((n) => Math.max(1, n - 1))}
+                  aria-label="Menos"
+                >
+                  <Minus size={14} />
+                </Button>
+                <span className="flex-1 text-center text-3xl font-bold tabular-nums text-neutral-900">
+                  {partySize}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  isDisabled={partySize >= 99}
+                  onPress={() => setPartySize((n) => Math.min(99, n + 1))}
+                  aria-label="Más"
+                >
+                  <Plus size={14} />
+                </Button>
+              </div>
+              {table.capacity && (
+                <p className="mt-1 text-[11px] text-neutral-400">
+                  Capacidad sugerida: {table.capacity}
+                </p>
+              )}
+            </div>
+            <TextField
+              value={customerName}
+              onChange={setCustomerName}
+              className="w-full"
+            >
+              <Label>Nombre del cliente (opcional)</Label>
+              <Input placeholder="Walk-in" />
+            </TextField>
+            {error && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                {error}
+              </p>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="ghost" type="button" onPress={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onPress={submit}
+              isDisabled={isPending}
+              className="gap-1.5"
+            >
+              <PlayCircle size={14} /> Habilitar y abrir
+            </Button>
+          </Modal.Footer>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 

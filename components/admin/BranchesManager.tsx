@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, MapPin, Star, Pencil, Trash2, X, Power } from "lucide-react";
-import { Button, Card, Chip, Switch } from "@heroui/react";
+import { Plus, MapPin, Star, Pencil, Trash2, Power } from "lucide-react";
+import {
+  Button,
+  Card,
+  Chip,
+  Switch,
+  Modal,
+  TextField,
+  Input,
+  Label,
+} from "@heroui/react";
 import SelectField from "@/components/ui/SelectField";
 import {
   createBranch,
@@ -83,9 +92,13 @@ export default function BranchesManager({
                     Principal
                   </Chip>
                 )}
-                {b.type === "foodpark_stall" && (
+                {b.type === "foodpark_stall" ? (
                   <Chip size="sm" variant="soft" color="accent">
-                    Food park
+                    Food court (take and go)
+                  </Chip>
+                ) : (
+                  <Chip size="sm" variant="soft">
+                    Local con mesas
                   </Chip>
                 )}
                 {!b.active && (
@@ -147,12 +160,14 @@ export default function BranchesManager({
         </Card>
       ))}
 
-      <button
+      <Button
         type="button"
-        onClick={() => setEditing("new")}
-        className="block w-full rounded-xl border border-dashed border-neutral-300 bg-white p-4 text-left transition-all hover:border-neutral-400"
+        onPress={() => setEditing("new")}
+        variant="outline"
+        fullWidth
+        className="h-auto justify-start border-dashed bg-white p-4 text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
             <Plus size={18} />
           </div>
@@ -160,12 +175,12 @@ export default function BranchesManager({
             <p className="text-sm font-semibold text-neutral-900">
               Crear sucursal
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs font-normal text-neutral-500">
               Cada sucursal tiene mesas, mozos, pedidos y menú propios.
             </p>
           </div>
         </div>
-      </button>
+      </Button>
 
       {editing && (
         <BranchModal
@@ -191,6 +206,28 @@ function BranchModal({
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(branch?.name ?? "");
   const [slug, setSlug] = useState(branch?.slug ?? "");
+  const [slugEdited, setSlugEdited] = useState(Boolean(branch?.slug));
+
+  function slugifyLocal(s: string) {
+    return s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  function handleNameChange(v: string) {
+    setName(v);
+    if (!slugEdited) setSlug(slugifyLocal(v));
+  }
+
+  function handleSlugChange(v: string) {
+    setSlug(v);
+    setSlugEdited(true);
+  }
   const [address, setAddress] = useState(branch?.address ?? "");
   const [phone, setPhone] = useState(branch?.phone ?? "");
   const [type, setType] = useState<BranchType>(branch?.type ?? "standalone");
@@ -232,120 +269,110 @@ function BranchModal({
     });
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
-  const labelClass = "mb-1 block text-sm font-medium text-neutral-700";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
-          <h2 className="text-base font-semibold">
-            {branch ? "Editar sucursal" : "Nueva sucursal"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Modal.Container>
+        <Modal.Dialog className="sm:max-w-md">
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>
+              {branch ? "Editar sucursal" : "Nueva sucursal"}
+            </Modal.Heading>
+          </Modal.Header>
 
-        <form onSubmit={handleSubmit} className="space-y-3 p-5">
-          <div>
-            <label className={labelClass}>Nombre *</label>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputClass}
-              placeholder="Sucursal Centro"
-            />
-          </div>
+          <form onSubmit={handleSubmit}>
+            <Modal.Body className="space-y-3">
+              <TextField
+                isRequired
+                value={name}
+                onChange={handleNameChange}
+                className="w-full"
+              >
+                <Label>Nombre</Label>
+                <Input placeholder="Sucursal Centro" />
+              </TextField>
 
-          <div>
-            <label className={labelClass}>Slug (URL)</label>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className={inputClass}
-              placeholder="centro (auto si vacío)"
-            />
-          </div>
+              <TextField
+                value={slug}
+                onChange={handleSlugChange}
+                className="w-full"
+              >
+                <Label>Slug (URL)</Label>
+                <Input placeholder="centro" />
+              </TextField>
 
-          <div>
-            <label className={labelClass}>Dirección</label>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className={inputClass}
-              placeholder="Av. Mariscal López 1234"
-            />
-          </div>
+              <TextField
+                value={address}
+                onChange={setAddress}
+                className="w-full"
+              >
+                <Label>Dirección</Label>
+                <Input placeholder="Av. Mariscal López 1234" />
+              </TextField>
 
-          <div>
-            <label className={labelClass}>Teléfono</label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
-              placeholder="+595 ..."
-            />
-          </div>
+              <TextField
+                value={phone}
+                onChange={setPhone}
+                className="w-full"
+              >
+                <Label>Teléfono</Label>
+                <Input placeholder="+595 ..." />
+              </TextField>
 
-          <SelectField
-            label="Tipo"
-            value={type}
-            onChange={(v) => setType(v as BranchType)}
-            options={[
-              { value: "standalone", label: "Local independiente" },
-              { value: "foodpark_stall", label: "Puesto en food park" },
-            ]}
-            placeholder="Seleccionar tipo"
-          />
+              <SelectField
+                label="Tipo"
+                value={type}
+                onChange={(v) => setType(v as BranchType)}
+                options={[
+                  { value: "standalone", label: "Local con mesas" },
+                  { value: "foodpark_stall", label: "Food court (take and go)" },
+                ]}
+                placeholder="Seleccionar tipo"
+              />
 
-          <div className="flex items-center justify-between rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
-            <div>
-              <p className="text-sm font-medium text-neutral-800">
-                Sucursal principal
-              </p>
-              <p className="text-xs text-neutral-500">
-                Default cuando un cliente abre el restaurante.
-              </p>
-            </div>
-            <Switch
-              isSelected={isDefault}
-              onChange={() => setIsDefault((v) => !v)}
-              size="sm"
-              aria-label="Sucursal principal"
-            >
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
-            </Switch>
-          </div>
+              <div className="flex items-center justify-between rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-neutral-800">
+                    Sucursal principal
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    Default cuando un cliente abre el restaurante.
+                  </p>
+                </div>
+                <Switch
+                  isSelected={isDefault}
+                  onChange={() => setIsDefault((v) => !v)}
+                  size="sm"
+                  aria-label="Sucursal principal"
+                >
+                  <Switch.Control>
+                    <Switch.Thumb />
+                  </Switch.Control>
+                </Switch>
+              </div>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
+              {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {error}
+                </p>
+              )}
+            </Modal.Body>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onPress={onClose} type="button">
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              isDisabled={isPending || !name.trim()}
-            >
-              {branch ? "Guardar" : "Crear"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <Modal.Footer>
+              <Button variant="ghost" onPress={onClose} type="button">
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                isDisabled={isPending || !name.trim()}
+              >
+                {branch ? "Guardar" : "Crear"}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }

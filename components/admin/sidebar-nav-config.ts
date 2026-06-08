@@ -25,6 +25,7 @@ export interface NavItem {
   exact?: boolean;
   badgeKey?: "newOrders";
   matchPaths?: string[];
+  comingSoon?: boolean;
 }
 
 export interface NavSection {
@@ -41,7 +42,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: "home", label: "Inicio", icon: LayoutDashboard, level: "branch", path: "", exact: true },
       { key: "orders", label: "Pedidos", icon: ClipboardList, level: "branch", path: "/orders", badgeKey: "newOrders" },
       { key: "tables", label: "Mesas", icon: Table2, level: "branch", path: "/tables" },
-      { key: "reservations", label: "Reservas", icon: CalendarDays, level: "branch", path: "/reservations" },
+      { key: "reservations", label: "Reservas", icon: CalendarDays, level: "branch", path: "/reservations", comingSoon: true },
     ],
   },
   {

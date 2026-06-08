@@ -1,9 +1,12 @@
 "use client";
 
+import { useTransition } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, Table2, ShoppingBag } from "lucide-react";
-import type { Order, OrderItem, OrderItemModifier } from "@/lib/types";
+import { Clock, Table2, ShoppingBag, ChefHat, CheckCheck, PackageCheck } from "lucide-react";
+import { Button, Chip } from "@heroui/react";
+import { updateOrderStatus } from "@/lib/actions/orders";
+import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
 
 type OrderFull = Order & {
   order_items: (OrderItem & { order_item_modifiers: OrderItemModifier[] })[];
@@ -15,6 +18,12 @@ function timeAgo(dateStr: string) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   return `${Math.floor(diff / 3600)}h`;
 }
+
+const NEXT_STATUS: Partial<Record<OrderStatus, { status: OrderStatus; label: string; icon: typeof ChefHat }>> = {
+  new: { status: "preparing", label: "Preparar", icon: ChefHat },
+  preparing: { status: "ready", label: "Listo", icon: CheckCheck },
+  ready: { status: "delivered", label: "Entregar", icon: PackageCheck },
+};
 
 export default function OrderCard({
   order,
@@ -30,6 +39,7 @@ export default function OrderCard({
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: order.id,
   });
+  const [isPending, startTransition] = useTransition();
 
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
@@ -40,6 +50,8 @@ export default function OrderCard({
     order.status === "new" &&
     Date.now() - new Date(order.created_at).getTime() > 5 * 60 * 1000;
 
+  const next = NEXT_STATUS[order.status as OrderStatus];
+
   return (
     <div
       ref={setNodeRef}
@@ -47,15 +59,22 @@ export default function OrderCard({
       {...listeners}
       {...attributes}
       onClick={() => onSelect(order)}
-      className={`cursor-grab rounded-xl bg-white p-3 shadow-sm transition-shadow select-none ${
+      className={`cursor-grab rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow select-none ${
         isDragging ? "opacity-50 shadow-lg rotate-1" : "hover:shadow-md"
-      } ${isUrgent ? "ring-2 ring-red-400" : ""}`}
+      }`}
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-neutral-400">
-          #{order.order_number}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-neutral-400">
+            #{order.order_number}
+          </span>
+          {isUrgent && (
+            <Chip size="sm" color="warning" variant="soft">
+              Urgente
+            </Chip>
+          )}
+        </div>
         <div className="flex items-center gap-1 text-xs text-neutral-400">
           <Clock size={11} />
           {timeAgo(order.created_at)}
@@ -101,10 +120,29 @@ export default function OrderCard({
         </p>
       </div>
 
-      {isUrgent && (
-        <p className="mt-2 rounded-lg bg-red-50 px-2 py-1 text-center text-xs font-semibold text-red-600">
-          ¡Esperando +5 min!
-        </p>
+      {next && (
+        <div
+          className="mt-2 border-t border-neutral-100 pt-2"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            fullWidth
+            onPress={() => {
+              if (!next) return;
+              startTransition(async () => {
+                await updateOrderStatus(order.id, next.status);
+              });
+            }}
+            isDisabled={isPending}
+            className="justify-center gap-1.5"
+          >
+            <next.icon size={13} />
+            {next.label}
+          </Button>
+        </div>
       )}
     </div>
   );

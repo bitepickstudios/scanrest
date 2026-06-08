@@ -4,32 +4,39 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Plus,
-  Minus,
-  Search,
-  Trash2,
   Send,
-  Receipt,
   DoorClosed,
   Users,
   Clock,
+  ShoppingBag,
 } from "lucide-react";
-import { Button, Chip } from "@heroui/react";
+import {
+  AlertDialog,
+  Button,
+  Card,
+  Chip,
+  Input,
+  Label,
+  Modal,
+  NumberField,
+  SearchField,
+  Tabs,
+  TextField,
+} from "@heroui/react";
+import StaffAlert from "@/components/staff/ui/StaffAlert";
+import ProductGridCard from "@/components/staff/ui/ProductGridCard";
+import StaffProductModal, {
+  type ProductFull,
+  type SelectedModifier,
+} from "@/components/staff/StaffProductModal";
+import CartSheet from "@/components/staff/CartSheet";
 import { createWaiterOrder } from "@/lib/actions/waiter-orders";
 import {
   closeTableSession,
   openTableSessionAsWaiter,
-  requestBill,
 } from "@/lib/actions/table-sessions";
 
 type Category = { id: string; name: string };
-type Product = {
-  id: string;
-  category_id: string | null;
-  name: string;
-  description: string | null;
-  price: number;
-};
 type Override = { product_id: string; available: boolean; price_override: number | null };
 type TableInfo = { id: string; label: string; capacity: number | null };
 type SessionLite = {
@@ -63,10 +70,20 @@ type CartLine = {
   productName: string;
   unitPrice: number;
   quantity: number;
+  modifiers: SelectedModifier[];
+  notes: string | null;
 };
 
-const inputClass =
-  "w-full rounded-xl border border-neutral-200 px-4 py-3 text-base outline-none focus:border-neutral-400";
+type PendingOrder = {
+  tempId: string;
+  customer_name: string;
+  items: { product_name: string; quantity: number; unit_price: number }[];
+};
+
+function modifiersKey(mods: SelectedModifier[], notes: string | null): string {
+  const ids = mods.map((m) => m.id).sort().join("|");
+  return `${ids}__${notes ?? ""}`;
+}
 
 export default function TicketView({
   restaurantSlug,
@@ -86,14 +103,14 @@ export default function TicketView({
   session: SessionLite;
   submittedOrders: SubmittedOrder[];
   categories: Category[];
-  products: Product[];
+  products: ProductFull[];
   overrides: Override[];
 }) {
   const router = useRouter();
   const billLocked = !!session?.bill_requested_at;
 
   const [openName, setOpenName] = useState("");
-  const [openParty, setOpenParty] = useState<string>("");
+  const [openParty, setOpenParty] = useState<number | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
   const [openingSession, startOpenSession] = useTransition();
 
@@ -102,9 +119,13 @@ export default function TicketView({
     categories[0]?.id ?? null
   );
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [actionPending, startAction] = useTransition();
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [openProduct, setOpenProduct] = useState<ProductFull | null>(null);
 
   const overrideMap = useMemo(
     () => new Map(overrides.map((o) => [o.product_id, o])),
@@ -134,40 +155,67 @@ export default function TicketView({
     });
   }, [visibleProducts, activeCat, search]);
 
+  const draftQtyMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of lines) {
+      map.set(l.productId, (map.get(l.productId) ?? 0) + l.quantity);
+    }
+    return map;
+  }, [lines]);
+
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
   const totalDraft = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
   const submittedTotal = submittedOrders.reduce(
     (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity * i.unit_price, 0),
     0
   );
-  const grandTotal = submittedTotal + totalDraft;
+  const pendingTotal = pendingOrders.reduce(
+    (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity * i.unit_price, 0),
+    0
+  );
+  const grandTotal = submittedTotal + pendingTotal + totalDraft;
 
-  function addProduct(p: { id: string; name: string; effective_price: number }) {
+  function addProductWithMods(
+    product: ProductFull & { effective_price: number },
+    modifiers: SelectedModifier[],
+    quantity: number,
+    note: string
+  ) {
     if (billLocked) return;
+    const notes = note.trim() || null;
+    const unitPrice =
+      product.effective_price + modifiers.reduce((s, m) => s + m.price_delta, 0);
+    const sig = modifiersKey(modifiers, notes);
     setLines((prev) => {
-      const existing = prev.find((l) => l.productId === p.id);
+      const existing = prev.find(
+        (l) =>
+          l.productId === product.id &&
+          modifiersKey(l.modifiers, l.notes) === sig
+      );
       if (existing) {
         return prev.map((l) =>
-          l.productId === p.id ? { ...l, quantity: l.quantity + 1 } : l
+          l === existing ? { ...l, quantity: l.quantity + quantity } : l
         );
       }
       return [
         ...prev,
         {
-          key: `${p.id}-${Date.now()}`,
-          productId: p.id,
-          productName: p.name,
-          unitPrice: p.effective_price,
-          quantity: 1,
+          key: `${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          productId: product.id,
+          productName: product.name,
+          unitPrice,
+          quantity,
+          modifiers,
+          notes,
         },
       ];
     });
   }
 
-  function changeQty(key: string, delta: number) {
+  function setQty(key: string, qty: number) {
     setLines((prev) =>
       prev
-        .map((l) => (l.key === key ? { ...l, quantity: l.quantity + delta } : l))
+        .map((l) => (l.key === key ? { ...l, quantity: qty } : l))
         .filter((l) => l.quantity > 0)
     );
   }
@@ -182,7 +230,7 @@ export default function TicketView({
       setOpenError("Nombre o referencia requerido.");
       return;
     }
-    const partyNum = openParty ? parseInt(openParty, 10) : null;
+    const partyNum = openParty ?? null;
     startOpenSession(async () => {
       try {
         await openTableSessionAsWaiter({
@@ -205,42 +253,53 @@ export default function TicketView({
     }
     if (lines.length === 0) return;
     setError(null);
+
+    const tempId = `pending-${Date.now()}`;
+    const snapshot = lines;
+    const optimistic: PendingOrder = {
+      tempId,
+      customer_name: session.customer_name?.trim() || "Mesa",
+      items: snapshot.map((l) => ({
+        product_name: l.productName,
+        quantity: l.quantity,
+        unit_price: l.unitPrice,
+      })),
+    };
+    setPendingOrders((prev) => [...prev, optimistic]);
+    setLines([]);
+
     startTransition(async () => {
       try {
         await createWaiterOrder({
           branchId,
           tableId: table.id,
           sessionId: session.id,
-          customerName: session.customer_name?.trim() || "Mesa",
-          items: lines.map((l) => ({
+          customerName: optimistic.customer_name,
+          items: snapshot.map((l) => ({
             productId: l.productId,
             productName: l.productName,
             quantity: l.quantity,
             unitPrice: l.unitPrice,
+            notes: l.notes,
+            modifiers: l.modifiers.map((m) => ({
+              name: m.name,
+              priceDelta: m.price_delta,
+            })),
           })),
         });
-        setLines([]);
+        setPendingOrders((prev) => prev.filter((o) => o.tempId !== tempId));
         router.refresh();
       } catch (err) {
+        setPendingOrders((prev) => prev.filter((o) => o.tempId !== tempId));
+        setLines(snapshot);
         setError(err instanceof Error ? err.message : "Error al enviar a cocina.");
-      }
-    });
-  }
-
-  function handleRequestBill() {
-    if (!session) return;
-    startAction(async () => {
-      try {
-        await requestBill(session.id);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al pedir cuenta.");
       }
     });
   }
 
   function handleCloseTable() {
     if (!session) return;
+    setConfirmCloseOpen(false);
     startAction(async () => {
       try {
         await closeTableSession(session.id, restaurantSlug, branchSlug);
@@ -252,71 +311,7 @@ export default function TicketView({
     });
   }
 
-  if (!session) {
-    return (
-      <div className="flex min-h-screen flex-col bg-neutral-50">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
-          <Button
-            variant="ghost"
-            isIconOnly
-            size="sm"
-            onPress={() => router.push(`/staff/${restaurantSlug}/${branchSlug}`)}
-            aria-label="Volver"
-          >
-            <ArrowLeft size={18} />
-          </Button>
-          <div>
-            <h1 className="text-base font-semibold">{table.label}</h1>
-            {table.capacity && (
-              <p className="text-xs text-neutral-500">Cap. {table.capacity}</p>
-            )}
-          </div>
-        </header>
-        <div className="flex-1 space-y-4 p-4 sm:p-6">
-          <div className="rounded-2xl border-2 border-dashed border-neutral-200 bg-white p-6 text-center">
-            <p className="text-sm font-medium text-neutral-700">
-              Mesa libre. Abrila para empezar a tomar el pedido.
-            </p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">
-              Cliente / referencia *
-            </label>
-            <input
-              autoFocus
-              value={openName}
-              onChange={(e) => setOpenName(e.target.value)}
-              className={inputClass}
-              placeholder="Sr. Pérez · Mesa 5"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Comensales</label>
-            <input
-              value={openParty}
-              onChange={(e) => setOpenParty(e.target.value)}
-              className={inputClass}
-              placeholder="2"
-              inputMode="numeric"
-            />
-          </div>
-          {openError && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-              {openError}
-            </p>
-          )}
-          <Button
-            variant="primary"
-            fullWidth
-            isDisabled={openingSession}
-            onPress={handleOpenTable}
-          >
-            Abrir mesa
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const sessionOpen = !!session;
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50">
@@ -339,98 +334,151 @@ export default function TicketView({
                   Cuenta pedida
                 </Chip>
               )}
-            </div>
-            <div className="mt-0.5 flex items-center gap-3 text-xs text-neutral-500">
-              <span>{session.customer_name ?? "Mesa"}</span>
-              {session.party_size && (
-                <span className="flex items-center gap-1">
-                  <Users size={11} /> {session.party_size}
-                </span>
+              {!sessionOpen && (
+                <Chip size="sm" variant="soft">
+                  Libre
+                </Chip>
               )}
-              <span className="flex items-center gap-1">
-                <Clock size={11} />
-                {new Date(session.opened_at).toLocaleTimeString("es-PY", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
             </div>
+            {sessionOpen && session && (
+              <div className="mt-0.5 flex items-center gap-3 text-xs text-neutral-500">
+                <span>{session.customer_name ?? "Mesa"}</span>
+                {session.party_size && (
+                  <span className="flex items-center gap-1">
+                    <Users size={11} /> {session.party_size}
+                  </span>
+                )}
+                <span className="flex items-center gap-1" suppressHydrationWarning>
+                  <Clock size={11} />
+                  {new Date(session.opened_at).toLocaleTimeString("es-PY", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            )}
           </div>
+          {sessionOpen && (
+            <Button
+              variant="danger-soft"
+              isIconOnly
+              size="sm"
+              onPress={() => setConfirmCloseOpen(true)}
+              isDisabled={actionPending}
+              aria-label="Cerrar mesa"
+            >
+              <DoorClosed size={16} />
+            </Button>
+          )}
         </div>
-        <div className="relative mt-3">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar producto..."
-            className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-neutral-300 focus:bg-white"
-            disabled={billLocked}
-          />
-        </div>
-        {!search && (
-          <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto scrollbar-hide">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setActiveCat(c.id)}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  activeCat === c.id
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600"
-                }`}
+
+        {sessionOpen && (
+          <>
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              aria-label="Buscar producto"
+              className="mt-3"
+              isDisabled={billLocked}
+            >
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Buscar producto..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
+
+            {!search && categories.length > 0 && (
+              <Tabs
+                selectedKey={activeCat ?? undefined}
+                onSelectionChange={(k) => setActiveCat(String(k))}
+                className="mt-3"
               >
-                {c.name}
-              </button>
-            ))}
-          </div>
+                <Tabs.ListContainer className="overflow-x-auto scrollbar-hide">
+                  <Tabs.List aria-label="Categorías" className="w-max">
+                    {categories.map((c) => (
+                      <Tabs.Tab key={c.id} id={c.id}>
+                        {c.name}
+                        <Tabs.Indicator />
+                      </Tabs.Tab>
+                    ))}
+                  </Tabs.List>
+                </Tabs.ListContainer>
+              </Tabs>
+            )}
+          </>
         )}
       </header>
 
-      <div className="flex-1 space-y-4 p-3 pb-40 sm:p-4">
-        {submittedOrders.length > 0 && (
+      <div className="flex-1 space-y-4 p-3 pb-28 sm:p-4">
+        {(submittedOrders.length > 0 || pendingOrders.length > 0) && (
           <section className="space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Ya enviado ({submittedOrders.length})
+              Ya enviado ({submittedOrders.length + pendingOrders.length})
             </h2>
             {submittedOrders.map((o) => (
-              <div
-                key={o.id}
-                className="rounded-xl border border-neutral-200 bg-white p-3"
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-neutral-700">
-                    #{o.order_number} · {o.source === "waiter" ? "Mozo" : "QR"} ·{" "}
-                    {o.customer_name}
-                  </span>
-                  <Chip size="sm" variant="soft">
-                    {o.status}
-                  </Chip>
-                </div>
-                <ul className="space-y-1">
-                  {o.items.map((it) => (
-                    <li
-                      key={it.id}
-                      className="flex justify-between text-sm text-neutral-700"
-                    >
-                      <span>
-                        {it.quantity}× {it.product_name}
-                      </span>
-                      <span>
-                        ₲ {(it.quantity * it.unit_price).toLocaleString("es-PY")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <Card key={o.id} variant="default">
+                <Card.Content className="!p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-neutral-700">
+                      #{o.order_number} · {o.source === "waiter" ? "Mozo" : "QR"} ·{" "}
+                      {o.customer_name}
+                    </span>
+                    <Chip size="sm" variant="soft">
+                      {o.status}
+                    </Chip>
+                  </div>
+                  <ul className="space-y-1">
+                    {o.items.map((it) => (
+                      <li
+                        key={it.id}
+                        className="flex justify-between text-sm text-neutral-700"
+                      >
+                        <span>
+                          {it.quantity}× {it.product_name}
+                        </span>
+                        <span>
+                          ₲ {(it.quantity * it.unit_price).toLocaleString("es-PY")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card.Content>
+              </Card>
+            ))}
+            {pendingOrders.map((o) => (
+              <Card key={o.tempId} variant="default" className="opacity-70">
+                <Card.Content className="!p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-neutral-700">
+                      Enviando · {o.customer_name}
+                    </span>
+                    <Chip size="sm" variant="soft" color="accent">
+                      Pendiente
+                    </Chip>
+                  </div>
+                  <ul className="space-y-1">
+                    {o.items.map((it, idx) => (
+                      <li
+                        key={idx}
+                        className="flex justify-between text-sm text-neutral-700"
+                      >
+                        <span>
+                          {it.quantity}× {it.product_name}
+                        </span>
+                        <span>
+                          ₲ {(it.quantity * it.unit_price).toLocaleString("es-PY")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card.Content>
+              </Card>
             ))}
           </section>
         )}
 
-        {!billLocked && (
+        {sessionOpen && !billLocked && (
           <section className="space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
               Agregar al pedido
@@ -440,141 +488,192 @@ export default function TicketView({
                 Sin productos.
               </p>
             ) : (
-              filteredProducts.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => addProduct(p)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left transition-colors hover:border-neutral-300 active:bg-neutral-50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-neutral-900">
-                      {p.name}
-                    </p>
-                    {p.description && (
-                      <p className="truncate text-xs text-neutral-500">
-                        {p.description}
-                      </p>
-                    )}
-                    <p className="mt-0.5 text-sm font-semibold text-neutral-700">
-                      ₲ {p.effective_price.toLocaleString("es-PY")}
-                    </p>
-                  </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white">
-                    <Plus size={18} />
-                  </div>
-                </button>
-              ))
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {filteredProducts.map((p) => (
+                  <ProductGridCard
+                    key={p.id}
+                    product={{
+                      id: p.id,
+                      name: p.name,
+                      description: p.description,
+                      effective_price: p.effective_price,
+                      image_url: p.image_url,
+                    }}
+                    draftQty={draftQtyMap.get(p.id) ?? 0}
+                    onOpen={() => setOpenProduct(p)}
+                  />
+                ))}
+              </div>
             )}
           </section>
         )}
 
         {billLocked && (
-          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Cuenta solicitada por el cliente. No se pueden agregar más items.
+          <StaffAlert
+            status="warning"
+            title="Cuenta solicitada"
+            description="El cliente pidió la cuenta. No se pueden agregar más items."
+          />
+        )}
+
+        {sessionOpen && (
+          <div className="flex items-baseline justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3">
+            <span className="text-sm text-neutral-500">Total mesa</span>
+            <span className="text-lg font-bold">
+              ₲ {grandTotal.toLocaleString("es-PY")}
+            </span>
           </div>
         )}
+
+        {error && <StaffAlert status="danger" description={error} />}
       </div>
 
-      <div className="sticky bottom-0 border-t border-neutral-200 bg-white p-3">
-        {lines.length > 0 && (
-          <details open className="mb-2">
-            <summary className="cursor-pointer text-xs font-semibold text-neutral-600">
-              Borrador ({totalQty})
-            </summary>
-            <div className="mt-2 max-h-52 space-y-2 overflow-y-auto">
-              {lines.map((l) => (
-                <div
-                  key={l.key}
-                  className="flex items-center gap-2 rounded-lg bg-neutral-50 p-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {l.productName}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      ₲ {l.unitPrice.toLocaleString("es-PY")} c/u
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => changeQty(l.key, -1)}
-                    aria-label="-1"
-                  >
-                    <Minus size={14} />
-                  </Button>
-                  <span className="w-6 text-center text-sm font-semibold">
-                    {l.quantity}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => changeQty(l.key, 1)}
-                    aria-label="+1"
-                  >
-                    <Plus size={14} />
-                  </Button>
-                  <Button
-                    variant="danger-soft"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => removeLine(l.key)}
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-        {error && (
-          <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
-          </p>
-        )}
-        <div className="mb-2 flex items-baseline justify-between text-sm">
-          <span className="text-neutral-500">Total mesa</span>
-          <span className="text-lg font-bold">
-            ₲ {grandTotal.toLocaleString("es-PY")}
-          </span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
+      {/* Floating "Ver pedido" button */}
+      {sessionOpen && !billLocked && lines.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-20">
           <Button
             variant="primary"
-            size="sm"
-            isDisabled={billLocked || lines.length === 0 || isPending}
-            onPress={handleSendToKitchen}
-            className="col-span-3"
+            fullWidth
+            size="lg"
+            onPress={() => setCartOpen(true)}
+            className="shadow-lg"
           >
-            <Send size={14} />
-            Enviar a cocina
-            {lines.length > 0 && ` · ₲ ${totalDraft.toLocaleString("es-PY")}`}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            isDisabled={billLocked || actionPending}
-            onPress={handleRequestBill}
-            className="col-span-2"
-          >
-            <Receipt size={14} />
-            Pedir cuenta
-          </Button>
-          <Button
-            variant="danger-soft"
-            size="sm"
-            isDisabled={actionPending}
-            onPress={handleCloseTable}
-          >
-            <DoorClosed size={14} />
-            Cerrar
+            <ShoppingBag size={16} />
+            <span className="flex-1 text-left">
+              Ver pedido · {totalQty} {totalQty === 1 ? "item" : "items"}
+            </span>
+            <span className="tabular-nums">
+              ₲ {totalDraft.toLocaleString("es-PY")}
+            </span>
           </Button>
         </div>
-      </div>
+      )}
+
+      {/* Pending kitchen send shortcut when sheet not visible — none, sheet has it */}
+
+      {/* Cart Drawer */}
+      <CartSheet
+        isOpen={cartOpen}
+        onOpenChange={setCartOpen}
+        lines={lines}
+        total={totalDraft}
+        setQty={setQty}
+        removeLine={removeLine}
+        onSubmit={handleSendToKitchen}
+        pending={isPending}
+      />
+
+      {/* Product modal */}
+      <StaffProductModal
+        product={openProduct}
+        onClose={() => setOpenProduct(null)}
+        onAdd={(mods, qty, note) => {
+          if (!openProduct) return;
+          const o = overrideMap.get(openProduct.id);
+          const effective = o?.price_override ?? openProduct.price;
+          addProductWithMods(
+            { ...openProduct, effective_price: effective },
+            mods,
+            qty,
+            note
+          );
+        }}
+      />
+
+      {/* Open table modal */}
+      <Modal.Backdrop
+        isOpen={!sessionOpen}
+        onOpenChange={(open) => {
+          if (!open) router.push(`/staff/${restaurantSlug}/${branchSlug}`);
+        }}
+      >
+        <Modal.Container>
+          <Modal.Dialog className="sm:max-w-md">
+            <Modal.Header>
+              <Modal.Heading>Abrir {table.label}</Modal.Heading>
+              {table.capacity && (
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Cap. {table.capacity}
+                </p>
+              )}
+            </Modal.Header>
+            <Modal.Body className="space-y-3">
+              <TextField
+                isRequired
+                value={openName}
+                onChange={setOpenName}
+                autoFocus
+                className="w-full"
+              >
+                <Label>Cliente / referencia</Label>
+                <Input placeholder="Sr. Pérez · Mesa 5" />
+              </TextField>
+              <NumberField
+                value={openParty}
+                onChange={(n) => setOpenParty(n)}
+                minValue={1}
+                step={1}
+                aria-label="Comensales"
+                className="w-full"
+              >
+                <Label>Comensales</Label>
+                <NumberField.Group>
+                  <NumberField.DecrementButton />
+                  <NumberField.Input placeholder="2" />
+                  <NumberField.IncrementButton />
+                </NumberField.Group>
+              </NumberField>
+              {openError && <StaffAlert status="danger" description={openError} />}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="ghost"
+                type="button"
+                onPress={() =>
+                  router.push(`/staff/${restaurantSlug}/${branchSlug}`)
+                }
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                isDisabled={openingSession || !openName.trim()}
+                onPress={handleOpenTable}
+              >
+                Abrir mesa
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+
+      {/* Close table confirmation */}
+      <AlertDialog.Backdrop
+        isOpen={confirmCloseOpen}
+        onOpenChange={setConfirmCloseOpen}
+      >
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Icon status="danger" />
+              <AlertDialog.Heading>Cerrar mesa</AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>
+              ¿Cerrar la sesión de {table.label}? La mesa quedará libre para el
+              próximo cliente.
+            </AlertDialog.Body>
+            <AlertDialog.Footer>
+              <Button slot="close" variant="ghost">
+                Cancelar
+              </Button>
+              <Button variant="danger" onPress={handleCloseTable}>
+                <Send size={14} className="hidden" />
+                Cerrar mesa
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
     </div>
   );
 }

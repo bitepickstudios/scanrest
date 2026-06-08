@@ -1,13 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, X, UserCircle, Pencil, Power } from "lucide-react";
-import { Button, Chip } from "@heroui/react";
+import { Plus, UserCircle, Pencil, Power, Trash2 } from "lucide-react";
+import {
+  Button,
+  Chip,
+  Input,
+  Label,
+  Modal,
+  TextField,
+} from "@heroui/react";
 import SelectField from "@/components/ui/SelectField";
 import {
-  inviteStaff,
+  createStaffAccount,
   updateStaffRole,
   deactivateStaff,
+  deleteStaff,
   assignZones,
 } from "@/lib/actions/staff";
 import type { StaffRole } from "@/lib/database.types";
@@ -47,6 +55,22 @@ export default function StaffManager({
     startTransition(async () => {
       try {
         await deactivateStaff(s.id);
+      } catch (e) {
+        alert(e instanceof Error ? e.message : "Error");
+      }
+    });
+  }
+
+  function handleDelete(s: StaffRow) {
+    if (
+      !confirm(
+        `¿Eliminar a ${s.display_name ?? s.user_id}? Esta acción es permanente.`
+      )
+    )
+      return;
+    startTransition(async () => {
+      try {
+        await deleteStaff(s.id);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Error");
       }
@@ -115,7 +139,7 @@ export default function StaffManager({
               </Button>
               {s.active && (
                 <Button
-                  variant="danger-soft"
+                  variant="ghost"
                   size="sm"
                   isIconOnly
                   onPress={() => handleDeactivate(s)}
@@ -125,30 +149,42 @@ export default function StaffManager({
                   <Power size={14} />
                 </Button>
               )}
+              <Button
+                variant="danger-soft"
+                size="sm"
+                isIconOnly
+                onPress={() => handleDelete(s)}
+                isDisabled={isPending}
+                aria-label="Eliminar"
+              >
+                <Trash2 size={14} />
+              </Button>
             </div>
           </div>
         );
       })}
 
-      <button
+      <Button
         type="button"
-        onClick={() => setEditing("new")}
-        className="block w-full rounded-xl border border-dashed border-neutral-300 bg-white p-3 text-left transition-all hover:border-neutral-400"
+        onPress={() => setEditing("new")}
+        variant="outline"
+        fullWidth
+        className="h-auto justify-start border-dashed bg-white p-3 text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
             <Plus size={15} />
           </div>
           <div>
             <p className="text-sm font-semibold text-neutral-900">
-              Invitar miembro
+              Crear miembro
             </p>
-            <p className="text-xs text-neutral-500">
-              El usuario debe haberse registrado primero.
+            <p className="text-xs font-normal text-neutral-500">
+              Le creás cuenta con email y contraseña.
             </p>
           </div>
         </div>
-      </button>
+      </Button>
 
       {editing && (
         <StaffModal
@@ -173,7 +209,8 @@ function StaffModal({
   zones: ZoneOpt[];
   onClose: () => void;
 }) {
-  const [userId, setUserId] = useState(staff?.user_id ?? "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState(staff?.display_name ?? "");
   const [role, setRole] = useState<StaffRole>(staff?.role ?? "waiter");
   const [branchId, setBranchId] = useState<string>(staff?.branch_id ?? "");
@@ -202,8 +239,9 @@ function StaffModal({
             await assignZones(staff.id, zoneIds);
           }
         } else {
-          await inviteStaff({
-            userId: userId.trim(),
+          await createStaffAccount({
+            email: email.trim(),
+            password,
             role,
             branchId: branchId || null,
             displayName: displayName.trim() || null,
@@ -217,130 +255,135 @@ function StaffModal({
     });
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400";
-  const labelClass = "mb-1 block text-sm font-medium text-neutral-700";
+  const canSubmit = staff
+    ? true
+    : email.trim().length > 0 && password.length >= 6;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
-          <h2 className="text-base font-semibold">
-            {staff ? "Editar miembro" : "Invitar miembro"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-3 p-5">
-          {!staff && (
-            <>
-              <div>
-                <label className={labelClass}>User ID (UUID) *</label>
-                <input
-                  required
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  className={inputClass}
-                  placeholder="00000000-0000-0000-0000-000000000000"
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Modal.Container>
+        <Modal.Dialog className="sm:max-w-md">
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>
+              {staff ? "Editar miembro" : "Crear miembro"}
+            </Modal.Heading>
+          </Modal.Header>
+
+          <form onSubmit={handleSubmit}>
+            <Modal.Body className="space-y-3">
+              {!staff && (
+                <>
+                  <TextField
+                    isRequired
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    className="w-full"
+                  >
+                    <Label>Email</Label>
+                    <Input placeholder="mozo@restaurante.com" />
+                  </TextField>
+
+                  <TextField
+                    isRequired
+                    type="password"
+                    value={password}
+                    onChange={setPassword}
+                    minLength={6}
+                    className="w-full"
+                  >
+                    <Label>Contraseña</Label>
+                    <Input placeholder="Mínimo 6 caracteres" />
+                  </TextField>
+
+                  <TextField
+                    value={displayName}
+                    onChange={setDisplayName}
+                    className="w-full"
+                  >
+                    <Label>Nombre visible</Label>
+                    <Input placeholder="Juan Pérez" />
+                  </TextField>
+                </>
+              )}
+
+              <SelectField
+                label="Rol *"
+                value={role}
+                onChange={(v) => setRole(v as StaffRole)}
+                options={[
+                  { value: "admin", label: "Admin (gestiona sucursal)" },
+                  { value: "waiter", label: "Mozo (toma pedidos en mesa)" },
+                ]}
+                placeholder="Seleccionar rol"
+              />
+
+              {!staff && (
+                <SelectField
+                  label="Sucursal"
+                  value={branchId}
+                  onChange={(v) => {
+                    setBranchId(v);
+                    setZoneIds([]);
+                  }}
+                  options={branches.map((b) => ({ value: b.id, label: b.name }))}
+                  emptyLabel="Todas (admin global)"
+                  placeholder="Seleccionar sucursal"
                 />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Pedile al usuario que se registre en /auth/register, y luego
-                  copiá su user_id desde Supabase.
-                </p>
-              </div>
-              <div>
-                <label className={labelClass}>Nombre visible</label>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className={inputClass}
-                  placeholder="Juan Pérez"
-                />
-              </div>
-            </>
-          )}
+              )}
 
-          <SelectField
-            label="Rol *"
-            value={role}
-            onChange={(v) => setRole(v as StaffRole)}
-            options={[
-              { value: "admin", label: "Admin (gestiona sucursal)" },
-              { value: "waiter", label: "Mozo (toma pedidos en mesa)" },
-            ]}
-            placeholder="Seleccionar rol"
-          />
-
-          {!staff && (
-            <SelectField
-              label="Sucursal"
-              value={branchId}
-              onChange={(v) => {
-                setBranchId(v);
-                setZoneIds([]);
-              }}
-              options={branches.map((b) => ({ value: b.id, label: b.name }))}
-              emptyLabel="Todas (admin global)"
-              placeholder="Seleccionar sucursal"
-            />
-          )}
-
-          {role === "waiter" && (staff ? true : !!branchId) && (
-            <div>
-              <label className={labelClass}>Zonas asignadas</label>
-              {branchZones.length === 0 ? (
-                <p className="text-xs text-neutral-500">
-                  Esta sucursal no tiene zonas. Creá zonas primero.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {branchZones.map((z) => {
-                    const selected = zoneIds.includes(z.id);
-                    return (
-                      <button
-                        key={z.id}
-                        type="button"
-                        onClick={() => toggleZone(z.id)}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                          selected
-                            ? "border-neutral-900 bg-neutral-900 text-white"
-                            : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-                        }`}
-                      >
-                        {z.name}
-                      </button>
-                    );
-                  })}
+              {role === "waiter" && (staff ? true : !!branchId) && (
+                <div>
+                  <Label>Zonas asignadas</Label>
+                  {branchZones.length === 0 ? (
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Esta sucursal no tiene zonas. Creá zonas primero.
+                    </p>
+                  ) : (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {branchZones.map((z) => {
+                        const selected = zoneIds.includes(z.id);
+                        return (
+                          <Button
+                            key={z.id}
+                            type="button"
+                            size="sm"
+                            variant={selected ? "primary" : "outline"}
+                            onPress={() => toggleZone(z.id)}
+                            className="rounded-full"
+                          >
+                            {z.name}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
+              {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {error}
+                </p>
+              )}
+            </Modal.Body>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" type="button" onPress={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              isDisabled={isPending || (!staff && !userId.trim())}
-            >
-              {staff ? "Guardar" : "Invitar"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <Modal.Footer>
+              <Button variant="ghost" type="button" onPress={onClose}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                isDisabled={isPending || !canSubmit}
+              >
+                {staff ? "Guardar" : "Crear cuenta"}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
