@@ -79,6 +79,108 @@ export async function createRestaurant(input: {
   return { slug: restaurant.slug };
 }
 
+export async function createRestaurantWithDefaultBranch(input: {
+  name: string;
+  slug?: string;
+  description?: string | null;
+  mode: "table" | "foodcourt";
+  phone?: string | null;
+  address?: string | null;
+  whatsapp?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
+  tiktok?: string | null;
+}): Promise<{ restaurantSlug: string; branchSlug: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const name = input.name?.trim();
+  if (!name) throw new Error("El nombre es obligatorio.");
+  if (!["table", "foodcourt"].includes(input.mode)) {
+    throw new Error("Modo inválido.");
+  }
+
+  const baseSlug = input.slug?.trim() ? slugify(input.slug) : slugify(name);
+  if (!baseSlug) throw new Error("Slug inválido.");
+
+  // Retry slug with -2, -3, ... if collision
+  let finalSlug = baseSlug;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+    const { data: existing } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("slug", candidate)
+      .maybeSingle();
+    if (!existing) {
+      finalSlug = candidate;
+      break;
+    }
+    if (attempt === 9) {
+      throw new Error("No se pudo generar un slug único. Probá otro nombre.");
+    }
+  }
+
+  const { data: restaurant, error: restErr } = await supabase
+    .from("restaurants")
+    .insert({
+      owner_id: user.id,
+      name,
+      slug: finalSlug,
+      description: input.description?.trim() || null,
+      mode: input.mode,
+      phone: input.phone?.trim() || null,
+      address: input.address?.trim() || null,
+      whatsapp: input.whatsapp?.trim() || null,
+      instagram: input.instagram?.trim() || null,
+      facebook: input.facebook?.trim() || null,
+      tiktok: input.tiktok?.trim() || null,
+    })
+    .select("id, slug")
+    .single();
+
+  if (restErr || !restaurant) {
+    throw new Error(restErr?.message ?? "Error al crear restaurante.");
+  }
+
+  const branchType =
+    input.mode === "foodcourt" ? "foodpark_stall" : "standalone";
+
+  const { data: branch, error: branchErr } = await supabase
+    .from("branches")
+    .insert({
+      restaurant_id: restaurant.id,
+      name: "Principal",
+      slug: "principal",
+      type: branchType,
+      address: input.address?.trim() || null,
+      phone: input.phone?.trim() || null,
+      is_default: true,
+      active: true,
+    })
+    .select("slug")
+    .single();
+
+  if (branchErr || !branch) {
+    throw new Error(branchErr?.message ?? "Error al crear sucursal.");
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(CURRENT_RESTAURANT_COOKIE, restaurant.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 90,
+  });
+
+  revalidatePath(`/admin/${restaurant.slug}`);
+  return { restaurantSlug: restaurant.slug, branchSlug: branch.slug };
+}
+
 export async function updateRestaurantProfile(formData: FormData) {
   const { supabase, restaurant } = await getCurrentRestaurant("id, slug");
 
