@@ -1,9 +1,10 @@
 "use client";
 
-import { Button, Popover } from "@heroui/react";
-import { Bell } from "lucide-react";
+import { Button, Popover, Switch, Label } from "@heroui/react";
+import { Bell, Volume2, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 export default function NotificationsBell({
   ordersHref,
@@ -13,6 +14,7 @@ export default function NotificationsBell({
   const items = useOrderNotifications((s) => s.items);
   const newOrderCount = useOrderNotifications((s) => s.newOrderCount);
   const markAllRead = useOrderNotifications((s) => s.markAllRead);
+  const { enabled: soundEnabled, setEnabled: setSoundEnabled } = useNotificationSound();
 
   return (
     <Popover onOpenChange={(open) => open && markAllRead()}>
@@ -36,6 +38,22 @@ export default function NotificationsBell({
             >
               Ver pedidos →
             </Link>
+          </div>
+          <div className="mt-2 flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+            <Label className="flex items-center gap-1.5 text-xs text-neutral-600">
+              {soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+              Sonido al recibir pedido
+            </Label>
+            <Switch
+              isSelected={soundEnabled}
+              onChange={setSoundEnabled}
+              size="sm"
+              aria-label="Sonido notificaciones"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch>
           </div>
           <div className="mt-3 max-h-80 overflow-y-auto">
             {items.length === 0 ? (

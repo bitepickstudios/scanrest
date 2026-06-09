@@ -3,7 +3,16 @@
 import { useTransition } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, Table2, ShoppingBag, ChefHat, CheckCheck, PackageCheck } from "lucide-react";
+import {
+  Clock,
+  Table2,
+  ShoppingBag,
+  ChefHat,
+  CheckCheck,
+  PackageCheck,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button, Chip } from "@heroui/react";
 import { updateOrderStatus } from "@/lib/actions/orders";
 import type { Order, OrderItem, OrderItemModifier, OrderStatus } from "@/lib/types";
@@ -23,6 +32,12 @@ const NEXT_STATUS: Partial<Record<OrderStatus, { status: OrderStatus; label: str
   new: { status: "preparing", label: "Preparar", icon: ChefHat },
   preparing: { status: "ready", label: "Listo", icon: CheckCheck },
   ready: { status: "delivered", label: "Entregar", icon: PackageCheck },
+};
+
+const PREV_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  preparing: "new",
+  ready: "preparing",
+  delivered: "ready",
 };
 
 export default function OrderCard({
@@ -51,6 +66,13 @@ export default function OrderCard({
     Date.now() - new Date(order.created_at).getTime() > 5 * 60 * 1000;
 
   const next = NEXT_STATUS[order.status as OrderStatus];
+  const prev = PREV_STATUS[order.status as OrderStatus];
+
+  function changeStatus(target: OrderStatus) {
+    startTransition(async () => {
+      await updateOrderStatus(order.id, target);
+    });
+  }
 
   return (
     <div
@@ -120,27 +142,47 @@ export default function OrderCard({
         </p>
       </div>
 
-      {next && (
+      {(next || prev) && (
         <div
-          className="mt-2 border-t border-neutral-100 pt-2"
+          className="mt-2 flex items-center gap-1.5 border-t border-neutral-100 pt-2"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
           <Button
             size="sm"
             variant="ghost"
-            fullWidth
-            onPress={() => {
-              if (!next) return;
-              startTransition(async () => {
-                await updateOrderStatus(order.id, next.status);
-              });
-            }}
-            isDisabled={isPending}
-            className="justify-center gap-1.5"
+            isIconOnly
+            isDisabled={!prev || isPending}
+            onPress={() => prev && changeStatus(prev)}
+            aria-label="Retroceder estado"
           >
-            <next.icon size={13} />
-            {next.label}
+            <ChevronLeft size={14} />
+          </Button>
+          {next ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => changeStatus(next.status)}
+              isDisabled={isPending}
+              className="flex-1 justify-center gap-1.5"
+            >
+              <next.icon size={13} />
+              {next.label}
+            </Button>
+          ) : (
+            <span className="flex-1 text-center text-xs font-medium text-neutral-400">
+              Entregado
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            isDisabled={!next || isPending}
+            onPress={() => next && changeStatus(next.status)}
+            aria-label="Avanzar estado"
+          >
+            <ChevronRight size={14} />
           </Button>
         </div>
       )}

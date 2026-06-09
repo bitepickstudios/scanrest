@@ -74,6 +74,7 @@ export interface Modifier {
   group_id: string;
   name: string;
   price_delta: number;
+  max_per_item: number;
 }
 
 export interface Order {
@@ -111,6 +112,7 @@ export interface OrderItemModifier {
   order_item_id: string;
   modifier_name: string;
   price_delta: number;
+  quantity: number;
 }
 
 export interface Review {

@@ -316,6 +316,7 @@ function CategoriesModal({
       try {
         await createCategory(name);
         setNewName("");
+        onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al crear");
       }

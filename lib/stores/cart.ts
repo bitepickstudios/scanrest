@@ -5,6 +5,7 @@ export interface CartModifier {
   id: string;
   name: string;
   price_delta: number;
+  quantity?: number;
 }
 
 export interface CartItem {
@@ -42,7 +43,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
 
   addItem(product, selectedModifiers, quantity, note) {
-    const key = `${product.id}-${selectedModifiers.map((m) => m.id).sort().join(",")}`;
+    const key = `${product.id}-${selectedModifiers
+      .map((m) => `${m.id}x${m.quantity ?? 1}`)
+      .sort()
+      .join(",")}`;
     set((state) => {
       const existing = state.items.find((i) => i.key === key);
       if (existing) {
@@ -59,7 +63,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   updateItem(key, product, selectedModifiers, quantity, note) {
-    const newKey = `${product.id}-${selectedModifiers.map((m) => m.id).sort().join(",")}`;
+    const newKey = `${product.id}-${selectedModifiers
+      .map((m) => `${m.id}x${m.quantity ?? 1}`)
+      .sort()
+      .join(",")}`;
     set((state) => {
       const idx = state.items.findIndex((i) => i.key === key);
       if (idx === -1) return state;
@@ -118,7 +125,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   totalPrice() {
     return get().items.reduce((sum, i) => {
       const modifiersTotal = i.selectedModifiers.reduce(
-        (s, m) => s + m.price_delta,
+        (s, m) => s + m.price_delta * (m.quantity ?? 1),
         0
       );
       return sum + (i.product.price + modifiersTotal) * i.quantity;

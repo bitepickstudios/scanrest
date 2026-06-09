@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { sileo } from "sileo";
 import { createClient } from "@/lib/supabase/client";
 import { useOrderNotifications } from "@/lib/stores/order-notifications";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 export default function OrdersRealtimeNotifier({
   restaurantId,
@@ -17,6 +18,7 @@ export default function OrdersRealtimeNotifier({
 }) {
   const router = useRouter();
   const push = useOrderNotifications((s) => s.push);
+  const { play } = useNotificationSound();
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,6 +48,7 @@ export default function OrdersRealtimeNotifier({
             source: order.source,
             createdAt: new Date().toISOString(),
           });
+          play();
           sileo.success({
             title: `Nuevo pedido #${order.order_number}`,
             description: [
@@ -74,7 +77,7 @@ export default function OrdersRealtimeNotifier({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, restaurantSlug, defaultBranchSlug, push, router]);
+  }, [restaurantId, restaurantSlug, defaultBranchSlug, push, router, play]);
 
   return null;
 }

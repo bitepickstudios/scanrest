@@ -36,6 +36,7 @@ import {
 } from "@/lib/actions/tables";
 import { closeTableSession, markSessionBilling } from "@/lib/actions/table-sessions";
 import { createClient } from "@/lib/supabase/client";
+import { useElapsedTime } from "@/hooks/useElapsedTime";
 import type { Table } from "@/lib/types";
 
 type ZoneOption = { id: string; name: string; sort_order?: number };
@@ -78,6 +79,11 @@ type ClosedSession = {
   tables: { number: number; label: string | null } | null;
   orders: SessionOrder[];
 };
+
+function LiveElapsed({ startIso }: { startIso: string }) {
+  const elapsed = useElapsedTime(startIso);
+  return <span className="tabular-nums">{elapsed}</span>;
+}
 
 function orderTotal(o: SessionOrder) {
   return o.order_items.reduce((sum, it) => {
@@ -783,7 +789,7 @@ function TableCard({
                     hour: "2-digit",
                     minute: "2-digit",
                   })}{" "}
-                  · {openedAt ? formatDuration(Date.now() - openedAt.getTime()) : ""}
+                  · <LiveElapsed startIso={session.opened_at} />
                 </p>
               </div>
               <div className="flex items-end justify-between border-t border-neutral-100 pt-2.5">

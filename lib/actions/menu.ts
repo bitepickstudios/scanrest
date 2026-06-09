@@ -16,11 +16,14 @@ async function getRestaurantId() {
 
 export async function createCategory(name: string) {
   const { supabase, restaurantId, menuPath } = await getRestaurantId();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("categories")
-    .insert({ restaurant_id: restaurantId, name });
+    .insert({ restaurant_id: restaurantId, name })
+    .select("id, name, sort_order")
+    .single();
   if (error) throw new Error(error.message);
   revalidatePath(menuPath);
+  return data;
 }
 
 export async function updateCategory(id: string, name: string) {
@@ -138,6 +141,22 @@ export async function createModifierGroup(
   return group;
 }
 
+export async function updateModifierGroup(
+  id: string,
+  data: { name: string; required: boolean; max_selections: number }
+) {
+  const { supabase, menuPath } = await getRestaurantId();
+  const { data: group, error } = await supabase
+    .from("modifier_groups")
+    .update(data)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath(menuPath);
+  return group;
+}
+
 export async function deleteModifierGroup(id: string) {
   const { supabase, menuPath } = await getRestaurantId();
   const { error } = await supabase
@@ -152,14 +171,38 @@ export async function deleteModifierGroup(id: string) {
 
 export async function createModifier(
   groupId: string,
-  data: { name: string; price_delta: number }
+  data: { name: string; price_delta: number; max_per_item?: number }
 ) {
   const { supabase, menuPath } = await getRestaurantId();
-  const { error } = await supabase
+  const { data: modifier, error } = await supabase
     .from("modifiers")
-    .insert({ group_id: groupId, ...data });
+    .insert({
+      group_id: groupId,
+      name: data.name,
+      price_delta: data.price_delta,
+      max_per_item: data.max_per_item ?? 1,
+    })
+    .select()
+    .single();
   if (error) throw new Error(error.message);
   revalidatePath(menuPath);
+  return modifier;
+}
+
+export async function updateModifier(
+  id: string,
+  data: { name: string; price_delta: number; max_per_item: number }
+) {
+  const { supabase, menuPath } = await getRestaurantId();
+  const { data: modifier, error } = await supabase
+    .from("modifiers")
+    .update(data)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath(menuPath);
+  return modifier;
 }
 
 export async function deleteModifier(id: string) {

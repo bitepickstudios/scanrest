@@ -237,6 +237,7 @@ export default function CartSheet({
         order_item_id: insertedItems[idx].id,
         modifier_name: mod.name,
         price_delta: mod.price_delta,
+        quantity: mod.quantity ?? 1,
       }))
     );
 

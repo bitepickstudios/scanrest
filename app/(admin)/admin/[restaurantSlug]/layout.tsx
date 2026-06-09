@@ -1,5 +1,6 @@
 import Sidebar from "@/components/admin/Sidebar";
 import OrdersRealtimeNotifier from "@/components/admin/OrdersRealtimeNotifier";
+import CommandPalette from "@/components/admin/CommandPalette";
 import { Toaster } from "sileo";
 import {
   getRestaurantBySlug,
@@ -26,11 +27,15 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Toaster position="top-right" theme="light" />
+      <Toaster position="top-right" theme="dark" />
       <OrdersRealtimeNotifier
         restaurantId={restaurant.id}
         restaurantSlug={restaurant.slug}
         defaultBranchSlug={defaultBranch?.slug}
+      />
+      <CommandPalette
+        restBase={`/admin/${restaurant.slug}`}
+        branchBase={`/admin/${restaurant.slug}/${defaultBranch?.slug ?? ""}`}
       />
       <Sidebar
         restaurant={restaurant}

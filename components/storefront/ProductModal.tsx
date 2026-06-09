@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Button, Chip, Checkbox, Label } from "@heroui/react";
+import { Button, Chip, Checkbox, Label, NumberField } from "@heroui/react";
 import { useCartStore } from "@/lib/stores/cart";
 import type { Product, ModifierGroup, Modifier } from "@/lib/types";
 import QuantityStepper from "./QuantityStepper";
@@ -30,42 +30,66 @@ export default function ProductModal({
   const updateItemAction = useCartStore((s) => s.updateItem);
   const [quantity, setQuantity] = useState(initialQuantity ?? 1);
   const [note, setNote] = useState(initialNote ?? "");
-  const [selected, setSelected] = useState<Record<string, string[]>>(() => {
-    const init: Record<string, string[]> = {};
+  // selectedQty: map of modifierId -> quantity selected (0 = not selected)
+  const [selectedQty, setSelectedQty] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
     const preset = new Set(initialModifierIds ?? []);
     product.modifier_groups.forEach((g) => {
-      init[g.id] = (g.modifiers ?? [])
-        .filter((m) => preset.has(m.id))
-        .map((m) => m.id);
+      (g.modifiers ?? []).forEach((m) => {
+        init[m.id] = preset.has(m.id) ? 1 : 0;
+      });
     });
     return init;
   });
 
-  function toggleModifier(groupId: string, modId: string, maxSelections: number) {
-    setSelected((prev) => {
-      const current = prev[groupId] ?? [];
-      if (current.includes(modId)) {
-        return { ...prev, [groupId]: current.filter((id) => id !== modId) };
+  function setQty(modId: string, qty: number) {
+    setSelectedQty((prev) => ({ ...prev, [modId]: Math.max(0, qty) }));
+  }
+
+  function groupSelectionCount(group: ModifierGroup & { modifiers?: Modifier[] }) {
+    return (group.modifiers ?? []).filter((m) => (selectedQty[m.id] ?? 0) > 0).length;
+  }
+
+  function toggleSingle(groupId: string, modId: string, maxSelections: number) {
+    setSelectedQty((prev) => {
+      const next = { ...prev };
+      const current = next[modId] ?? 0;
+      const group = product.modifier_groups.find((g) => g.id === groupId);
+      if (current > 0) {
+        next[modId] = 0;
+        return next;
       }
-      if (maxSelections === 1) {
-        return { ...prev, [groupId]: [modId] };
+      if (maxSelections === 1 && group) {
+        group.modifiers?.forEach((m) => {
+          next[m.id] = 0;
+        });
+      } else if (group) {
+        const selectedCount = (group.modifiers ?? []).filter(
+          (m) => (next[m.id] ?? 0) > 0
+        ).length;
+        if (selectedCount >= maxSelections) return prev;
       }
-      if (current.length >= maxSelections) return prev;
-      return { ...prev, [groupId]: [...current, modId] };
+      next[modId] = 1;
+      return next;
     });
   }
 
   function canAdd() {
     return product.modifier_groups
       .filter((g) => g.required)
-      .every((g) => (selected[g.id]?.length ?? 0) > 0);
+      .every((g) => groupSelectionCount(g) > 0);
   }
 
   function handleAdd() {
     const selectedModifiers = product.modifier_groups.flatMap((g) =>
       (g.modifiers ?? [])
-        .filter((m) => selected[g.id]?.includes(m.id))
-        .map((m) => ({ id: m.id, name: m.name, price_delta: m.price_delta }))
+        .filter((m) => (selectedQty[m.id] ?? 0) > 0)
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          price_delta: m.price_delta,
+          quantity: selectedQty[m.id] ?? 1,
+        }))
     );
     if (editKey) {
       updateItemAction(editKey, product, selectedModifiers, quantity, note);
@@ -75,9 +99,9 @@ export default function ProductModal({
     onClose();
   }
 
-  const extraPrice = product.modifier_groups.flatMap((g) =>
-    (g.modifiers ?? []).filter((m) => selected[g.id]?.includes(m.id))
-  ).reduce((s, m) => s + m.price_delta, 0);
+  const extraPrice = product.modifier_groups
+    .flatMap((g) => g.modifiers ?? [])
+    .reduce((s, m) => s + m.price_delta * (selectedQty[m.id] ?? 0), 0);
 
   const total = (product.price + extraPrice) * quantity;
 
@@ -127,8 +151,40 @@ export default function ProductModal({
             </p>
             <div className="space-y-1">
               {group.modifiers?.map((mod) => {
-                const isSelected = selected[group.id]?.includes(mod.id) ?? false;
+                const qty = selectedQty[mod.id] ?? 0;
+                const maxPerItem = mod.max_per_item ?? 1;
                 const checkboxId = `mod-${group.id}-${mod.id}`;
+                if (maxPerItem > 1) {
+                  return (
+                    <div
+                      key={mod.id}
+                      className="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-neutral-800">{mod.name}</p>
+                        {mod.price_delta !== 0 && (
+                          <p className="text-xs text-neutral-500">
+                            {mod.price_delta > 0 ? "+" : ""}Gs.{" "}
+                            {mod.price_delta.toLocaleString("es-PY")} c/u
+                          </p>
+                        )}
+                      </div>
+                      <NumberField
+                        value={qty}
+                        onChange={(v) => setQty(mod.id, v ?? 0)}
+                        minValue={0}
+                        maxValue={maxPerItem}
+                        className="w-28"
+                      >
+                        <NumberField.Group>
+                          <NumberField.DecrementButton />
+                          <NumberField.Input />
+                          <NumberField.IncrementButton />
+                        </NumberField.Group>
+                      </NumberField>
+                    </div>
+                  );
+                }
                 return (
                   <label
                     key={mod.id}
@@ -137,9 +193,9 @@ export default function ProductModal({
                   >
                     <Checkbox
                       id={checkboxId}
-                      isSelected={isSelected}
+                      isSelected={qty > 0}
                       onChange={() =>
-                        toggleModifier(group.id, mod.id, group.max_selections)
+                        toggleSingle(group.id, mod.id, group.max_selections)
                       }
                     >
                       <Checkbox.Control>
