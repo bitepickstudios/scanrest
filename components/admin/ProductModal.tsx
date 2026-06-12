@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { X, Plus, Check } from "lucide-react";
 import {
   Button,
@@ -10,15 +10,21 @@ import {
   Select,
   ListBox,
   Disclosure,
+  Autocomplete,
+  SearchField,
+  useFilter,
 } from "@heroui/react";
 import {
   createProduct,
   updateProduct,
   createCategory,
 } from "@/lib/actions/menu";
+import { setProductBranchAvailability } from "@/lib/actions/branch-products";
 import { createClient } from "@/lib/supabase/client";
 import ImageDropzone from "@/components/ui/ImageDropzone";
+import ChipInput from "@/components/ui/ChipInput";
 import ModifierEditor, { GroupWithModifiers } from "./ModifierEditor";
+import type { BranchOption, BranchProductRow } from "./MenuManager";
 import type { Category, Product } from "@/lib/types";
 
 type ProductWithModifiers = Product & {
@@ -30,12 +36,16 @@ export default function ProductModal({
   categories,
   categoryId,
   product,
+  branches = [],
+  branchProducts = [],
   onClose,
 }: {
   restaurantId: string;
   categories: Category[];
   categoryId: string;
   product: ProductWithModifiers | null;
+  branches?: BranchOption[];
+  branchProducts?: BranchProductRow[];
   onClose: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -53,6 +63,30 @@ export default function ProductModal({
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [price, setPrice] = useState<number | undefined>(product?.price ?? undefined);
+  const [ingredients, setIngredients] = useState<string[]>(
+    product?.ingredients ?? []
+  );
+  const [calories, setCalories] = useState<number | undefined>(
+    product?.calories ?? undefined
+  );
+
+  // Branch availability: missing row = available (default true)
+  const initialBranchIds = useMemo(() => {
+    if (!product) return branches.map((b) => b.id);
+    return branches
+      .filter((b) => {
+        const row = branchProducts.find(
+          (bp) => bp.branch_id === b.id && bp.product_id === product.id
+        );
+        return row ? row.available : true;
+      })
+      .map((b) => b.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [branchIds, setBranchIds] = useState<string[]>(initialBranchIds);
+  const showBranchSection = branches.length > 1;
+
+  const { contains } = useFilter({ sensitivity: "base" });
 
   const [persistedGroups, setPersistedGroups] = useState<GroupWithModifiers[]>(
     product?.modifier_groups ?? []
@@ -114,18 +148,22 @@ export default function ProductModal({
       description: description.trim(),
       price,
       image_url: imageUrl || null,
+      ingredients: ingredients.length > 0 ? ingredients : null,
+      calories: calories ?? null,
     };
 
     startTransition(async () => {
       try {
+        let productId: string;
         if (product) {
           await updateProduct(product.id, { ...data, available: product.available });
+          productId = product.id;
         } else {
-          await createProduct(data);
-          // Persist draft modifier groups + items (chain after product create — but createProduct
-          // doesn't return id today. So draft modifiers only persist for edit mode here.)
-          // For create mode, draft groups are dropped on first save. User edits product after to add them.
-          // TODO: have createProduct return the id so we can chain.
+          const created = await createProduct(data);
+          productId = created.id;
+        }
+        if (showBranchSection) {
+          await setProductBranchAvailability(productId, branchIds);
         }
         onClose();
       } catch (err) {
@@ -281,6 +319,42 @@ export default function ProductModal({
 
             <div>
               <Label className="mb-1 block text-xs font-medium text-neutral-600">
+                Ingredientes
+              </Label>
+              <ChipInput
+                value={ingredients}
+                onChange={setIngredients}
+                placeholder="Ej: tomate, Enter para agregar..."
+              />
+              <p className="mt-1 text-xs text-neutral-400">
+                Opcional. Útil para alergias y dietas.
+              </p>
+            </div>
+
+            <div>
+              <NumberField
+                value={calories}
+                onChange={(v) => setCalories(v)}
+                minValue={0}
+                step={10}
+                className="w-44"
+              >
+                <Label className="mb-1 block text-xs font-medium text-neutral-600">
+                  Calorías
+                </Label>
+                <NumberField.Group>
+                  <NumberField.DecrementButton />
+                  <NumberField.Input placeholder="—" />
+                  <NumberField.IncrementButton />
+                </NumberField.Group>
+              </NumberField>
+              <p className="mt-1 text-xs text-neutral-400">
+                Opcional. kcal por porción.
+              </p>
+            </div>
+
+            <div>
+              <Label className="mb-1 block text-xs font-medium text-neutral-600">
                 Imagen
               </Label>
               <ImageDropzone
@@ -290,6 +364,53 @@ export default function ProductModal({
                 onClear={() => setImageUrl(null)}
               />
             </div>
+
+            {showBranchSection && (
+              <div>
+                <Label className="mb-1 block text-xs font-medium text-neutral-600">
+                  Disponible en sucursales
+                </Label>
+                <Autocomplete
+                  fullWidth
+                  placeholder="Seleccionar sucursales"
+                  selectionMode="multiple"
+                  value={branchIds}
+                  onChange={(v) => {
+                    const keys = Array.isArray(v) ? v : v != null ? [v] : [];
+                    setBranchIds(keys.map(String));
+                  }}
+                >
+                  <Autocomplete.Trigger>
+                    <Autocomplete.Value />
+                    <Autocomplete.Indicator />
+                  </Autocomplete.Trigger>
+                  <Autocomplete.Popover>
+                    <Autocomplete.Filter filter={contains}>
+                      <SearchField autoFocus name="branch-search" variant="secondary">
+                        <SearchField.Group>
+                          <SearchField.SearchIcon />
+                          <SearchField.Input placeholder="Buscar sucursal..." />
+                          <SearchField.ClearButton />
+                        </SearchField.Group>
+                      </SearchField>
+                      <ListBox>
+                        {branches.map((b) => (
+                          <ListBox.Item key={b.id} id={b.id} textValue={b.name}>
+                            {b.name}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Autocomplete.Filter>
+                  </Autocomplete.Popover>
+                </Autocomplete>
+                {branchIds.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Sin sucursales seleccionadas: el producto no se mostrará en ningún menú.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Modificadores embebidos — solo edit mode */}
             {isEditMode && (

@@ -20,12 +20,23 @@ type ProductWithModifiers = Product & {
 };
 type CategoryWithProducts = Category & { products: ProductWithModifiers[] };
 
+export type BranchOption = { id: string; name: string };
+export type BranchProductRow = {
+  branch_id: string;
+  product_id: string;
+  available: boolean;
+};
+
 export default function MenuManager({
   restaurantId,
   categories,
+  branches = [],
+  branchProducts = [],
 }: {
   restaurantId: string;
   categories: CategoryWithProducts[];
+  branches?: BranchOption[];
+  branchProducts?: BranchProductRow[];
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categories[0]?.id ?? null
@@ -241,6 +252,8 @@ export default function MenuManager({
           categories={categories}
           categoryId={productModal.categoryId}
           product={productModal.product}
+          branches={branches}
+          branchProducts={branchProducts}
           onClose={() => setProductModal(null)}
         />
       )}

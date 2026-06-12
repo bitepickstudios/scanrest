@@ -51,11 +51,31 @@ export default async function StorefrontBranchPage({
 
   if (!branch) notFound();
 
-  const { data: categories } = await supabase
-    .from("categories")
-    .select(`*, products(*, modifier_groups(*, modifiers(*)))`)
-    .eq("restaurant_id", restaurant.id)
-    .order("sort_order", { ascending: true });
+  const [{ data: rawCategories }, { data: overrides }] = await Promise.all([
+    supabase
+      .from("categories")
+      .select(`*, products(*, modifier_groups(*, modifiers(*)))`)
+      .eq("restaurant_id", restaurant.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("branch_products")
+      .select("product_id, available, price_override")
+      .eq("branch_id", branch.id),
+  ]);
+
+  // Apply per-branch overrides: hide unavailable, override price.
+  const overrideMap = new Map(
+    (overrides ?? []).map((o) => [o.product_id, o])
+  );
+  const categories = (rawCategories ?? []).map((c: any) => ({
+    ...c,
+    products: (c.products ?? [])
+      .filter((p: any) => overrideMap.get(p.id)?.available !== false)
+      .map((p: any) => {
+        const ov = overrideMap.get(p.id);
+        return ov?.price_override != null ? { ...p, price: ov.price_override } : p;
+      }),
+  }));
 
   const { data: table } = tableId
     ? await supabase

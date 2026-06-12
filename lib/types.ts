@@ -58,6 +58,8 @@ export interface Product {
   image_url: string | null;
   available: boolean;
   sort_order: number;
+  ingredients?: string[] | null;
+  calories?: number | null;
 }
 
 export interface ModifierGroup {

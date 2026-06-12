@@ -130,9 +130,31 @@ export default function ProductModal({
         {product.description && (
           <p className="mt-1 text-sm text-neutral-500">{product.description}</p>
         )}
-        <p className="mt-2 text-base font-bold">
-          Gs. {product.price.toLocaleString("es-PY")}
-        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <p className="text-base font-bold">
+            Gs. {product.price.toLocaleString("es-PY")}
+          </p>
+          {product.calories != null && (
+            <Chip variant="soft" size="sm" className="text-neutral-500">
+              <Chip.Label>{product.calories} kcal</Chip.Label>
+            </Chip>
+          )}
+        </div>
+
+        {(product.ingredients?.length ?? 0) > 0 && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              Ingredientes
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {product.ingredients!.map((ing) => (
+                <Chip key={ing} variant="soft" size="sm">
+                  <Chip.Label>{ing}</Chip.Label>
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
 
         {product.modifier_groups.map((group) => (
           <div key={group.id} className="mt-5">

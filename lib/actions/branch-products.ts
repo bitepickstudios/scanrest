@@ -61,6 +61,43 @@ export async function setProductPriceOverride(
   revalidatePath(`/admin/${restaurant.slug}`, "layout");
 }
 
+export async function setProductBranchAvailability(
+  productId: string,
+  availableBranchIds: string[]
+) {
+  const { supabase, restaurant } = await getRestaurant();
+
+  const { data: product, error: prodErr } = await supabase
+    .from("products")
+    .select("id")
+    .eq("id", productId)
+    .eq("restaurant_id", restaurant.id)
+    .single();
+  if (prodErr || !product) throw new Error("Producto no encontrado o sin acceso.");
+
+  const { data: branches, error: brErr } = await supabase
+    .from("branches")
+    .select("id")
+    .eq("restaurant_id", restaurant.id)
+    .eq("active", true);
+  if (brErr) throw new Error(brErr.message);
+  if (!branches || branches.length === 0) return;
+
+  const availableSet = new Set(availableBranchIds);
+  const rows = branches.map((b) => ({
+    branch_id: b.id,
+    product_id: productId,
+    available: availableSet.has(b.id),
+  }));
+
+  const { error } = await supabase
+    .from("branch_products")
+    .upsert(rows, { onConflict: "branch_id,product_id" });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/${restaurant.slug}`, "layout");
+}
+
 export async function bulkUpdateOverrides(
   branchId: string,
   items: Array<{ productId: string; available?: boolean; priceOverride?: number | null }>

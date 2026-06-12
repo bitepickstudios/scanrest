@@ -69,13 +69,18 @@ export async function createProduct(data: {
   description: string;
   price: number;
   image_url: string | null;
-}) {
+  ingredients?: string[] | null;
+  calories?: number | null;
+}): Promise<{ id: string }> {
   const { supabase, restaurantId, menuPath } = await getRestaurantId();
-  const { error } = await supabase
+  const { data: product, error } = await supabase
     .from("products")
-    .insert({ restaurant_id: restaurantId, ...data });
-  if (error) throw new Error(error.message);
+    .insert({ restaurant_id: restaurantId, ...data })
+    .select("id")
+    .single();
+  if (error || !product) throw new Error(error?.message ?? "Error al crear producto.");
   revalidatePath(menuPath);
+  return { id: product.id };
 }
 
 export async function updateProduct(
@@ -87,6 +92,8 @@ export async function updateProduct(
     price: number;
     image_url: string | null;
     available: boolean;
+    ingredients?: string[] | null;
+    calories?: number | null;
   }
 ) {
   const { supabase, restaurantId, menuPath } = await getRestaurantId();
